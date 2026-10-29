@@ -22,10 +22,9 @@ spring:
     hibernate:
       # Flyway owns the schema; Hibernate only checks that entities match it.
       ddl-auto: validate
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
+    # No hibernate.jdbc.time_zone override: Instants map to timestamptz (always UTC), while
+    # LocalDate/LocalTime are organization-local calendar values that must be stored verbatim.
+    # (Forcing UTC here shifted LocalTime values by the JVM's offset; see MigrationAndConstraintsIT.)
   flyway:
     enabled: true
     locations: classpath:db/migration

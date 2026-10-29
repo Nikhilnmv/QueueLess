@@ -156,7 +156,9 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
-                    <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+                    <!-- A non-UTC JVM zone (+05:30) on purpose: time-zone conversion bugs cannot hide
+                         on machines or CI runners that happen to use UTC. -->
+                    <argLine>-XX:+EnableDynamicAgentLoading -Duser.timezone=Asia/Kolkata</argLine>
                     <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                 </configuration>
             </plugin>

@@ -33,3 +33,4 @@ frontend/playwright/.cache/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+.smoke-state
