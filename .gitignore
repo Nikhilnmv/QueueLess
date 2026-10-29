@@ -1,0 +1,35 @@
+# --- Secrets and local environment -------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# --- Local PostgreSQL cluster created by scripts/local-postgres.sh ----------
+.local/
+
+# --- Java / Maven -------------------------------------------------------------
+backend/target/
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+.mvn/wrapper/maven-wrapper.jar
+
+# --- Node / Vite / Playwright -------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/playwright/.cache/
+*.tsbuildinfo
+
+# --- IDE / OS -----------------------------------------------------------------
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

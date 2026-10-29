@@ -1,0 +1,32 @@
+# Integration tests run against a real PostgreSQL database (locking behaviour,
+# partial unique indexes and generated columns are PostgreSQL features).
+# Defaults match scripts/local-postgres.sh and docker-compose.yml; CI overrides
+# them with QUEUELESS_TEST_DATABASE_* environment variables.
+spring:
+  datasource:
+    url: ${QUEUELESS_TEST_DATABASE_URL:jdbc:postgresql://localhost:5433/queueless_test}
+    username: ${QUEUELESS_TEST_DATABASE_USERNAME:queueless}
+    password: ${QUEUELESS_TEST_DATABASE_PASSWORD:queueless}
+    hikari:
+      # Concurrency tests run many transactions at the same time.
+      maximum-pool-size: 40
+  flyway:
+    # Tests rebuild the schema from the migrations on every run (see TestFlywayConfig).
+    clean-disabled: false
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
+queueless:
+  seed:
+    enabled: false
+  realtime:
+    heartbeat-interval: 2s
+
+logging:
+  level:
+    com.queueless: INFO
+    org.springframework.security: WARN

@@ -1,0 +1,37 @@
+# Hosted deployment (Render web service + Neon PostgreSQL).
+# Required environment variables: DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD
+# (or a single DATABASE_URL with embedded credentials). Use Neon's *direct*
+# (non "-pooler") host with sslmode=require.
+spring:
+  datasource:
+    hikari:
+      # Small pool for a free-tier database. Idle connections are closed after
+      # two minutes so that Neon can scale the compute to zero when unused.
+      maximum-pool-size: 5
+      minimum-idle: 0
+      idle-timeout: 120000
+      max-lifetime: 600000
+      keepalive-time: 0
+      # Allow for a scale-to-zero database waking up.
+      connection-timeout: 20000
+  session:
+    jdbc:
+      # Infrequent cleanup so a scheduled job does not keep the database awake.
+      cleanup-cron: "0 0 */6 * * *"
+
+server:
+  # Trust X-Forwarded-* headers from the platform proxy (HTTPS detection, client IP).
+  forward-headers-strategy: native
+
+queueless:
+  security:
+    https-redirect: true
+  seed:
+    # Optional demo data for the hosted demo. Requires QUEUELESS_SEED_PASSWORD.
+    enabled: ${QUEUELESS_SEED_DEMO_DATA:false}
+    sample-tickets: false
+    password: ${QUEUELESS_SEED_PASSWORD:}
+
+logging:
+  level:
+    root: INFO

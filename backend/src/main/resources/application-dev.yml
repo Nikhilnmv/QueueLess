@@ -1,0 +1,25 @@
+# Local development. Start PostgreSQL with `scripts/local-postgres.sh start`
+# (or `docker compose up -d db`), then run with `-Dspring-boot.run.profiles=dev`.
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/queueless}
+    username: ${DATABASE_USERNAME:queueless}
+    password: ${DATABASE_PASSWORD:queueless}
+
+server:
+  servlet:
+    session:
+      cookie:
+        # The Vite dev server and the backend run over plain http://localhost.
+        secure: false
+
+queueless:
+  seed:
+    enabled: true
+    sample-tickets: true
+    # Local demo accounts only. Production seeding requires QUEUELESS_SEED_PASSWORD.
+    password: ${QUEUELESS_SEED_PASSWORD:Password123!}
+
+logging:
+  level:
+    com.queueless: DEBUG
