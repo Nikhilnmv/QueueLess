@@ -136,6 +136,8 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
+                    <!-- Mockito (via spring-boot-starter-test) attaches a Java agent at runtime. -->
+                    <argLine>-XX:+EnableDynamicAgentLoading</argLine>
                 </configuration>
             </plugin>
             <!-- Integration and concurrency tests (*IT) run with `mvn verify` against PostgreSQL. -->
@@ -154,6 +156,7 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
+                    <argLine>-XX:+EnableDynamicAgentLoading</argLine>
                     <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                 </configuration>
             </plugin>

@@ -25,6 +25,14 @@ queueless:
     enabled: false
   realtime:
     heartbeat-interval: 2s
+  security:
+    # Every test request comes from 127.0.0.1 while the test clock stands still, so the per-IP
+    # limits are raised here; they are covered by AttemptLimiterTest. The per-email login
+    # lockout keeps its production value and is tested over HTTP in AuthIT.
+    login:
+      max-failures-per-ip: 100000
+    registration:
+      max-per-ip: 100000
 
 logging:
   level:

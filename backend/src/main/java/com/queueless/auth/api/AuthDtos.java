@@ -15,11 +15,23 @@ public final class AuthDtos {
     public record RegisterRequest(
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 2, max = 120) String fullName,
-            @NotBlank @Size(min = 8, max = 72, message = "must be between 8 and 72 characters") String password) {}
+            @NotBlank @Size(min = 8, max = 72, message = "must be between 8 and 72 characters") String password) {
+
+        /** Surrounding whitespace is removed before validation (passwords are kept verbatim). */
+        public RegisterRequest {
+            email = email == null ? null : email.trim();
+            fullName = fullName == null ? null : fullName.trim();
+        }
+    }
 
     public record LoginRequest(
             @NotBlank @Size(max = 254) String email,
-            @NotBlank @Size(max = 200) String password) {}
+            @NotBlank @Size(max = 200) String password) {
+
+        public LoginRequest {
+            email = email == null ? null : email.trim();
+        }
+    }
 
     public record CurrentUserResponse(
             UUID id,

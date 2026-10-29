@@ -81,10 +81,14 @@ management:
         readiness:
           include: readinessState,db
 
+# API documentation is public on purpose: it describes endpoints, never data, and every
+# endpoint enforces its own authorization. Set QUEUELESS_API_DOCS_ENABLED=false to hide it.
 springdoc:
   api-docs:
+    enabled: ${QUEUELESS_API_DOCS_ENABLED:true}
     path: /v3/api-docs
   swagger-ui:
+    enabled: ${QUEUELESS_API_DOCS_ENABLED:true}
     path: /swagger-ui.html
   packages-to-scan: com.queueless
 

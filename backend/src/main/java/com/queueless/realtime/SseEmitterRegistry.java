@@ -53,8 +53,45 @@ public class SseEmitterRegistry implements SmartLifecycle {
     private volatile ScheduledFuture<?> heartbeat;
     private volatile boolean running;
 
-    private record Subscription(UUID topic, UUID userId, SseEmitter emitter, Map<UUID, Set<Subscription>> streams,
-                                AtomicBoolean closed) {}
+    /**
+     * One open connection. Deliberately a class with identity equality, not a record: a record's
+     * generated hashCode() would include {@code streams}, the map that contains this subscription,
+     * and recurse forever when the subscription is added to its set.
+     */
+    private static final class Subscription {
+        private final UUID topic;
+        private final UUID userId;
+        private final SseEmitter emitter;
+        private final Map<UUID, Set<Subscription>> streams;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        Subscription(UUID topic, UUID userId, SseEmitter emitter, Map<UUID, Set<Subscription>> streams) {
+            this.topic = topic;
+            this.userId = userId;
+            this.emitter = emitter;
+            this.streams = streams;
+        }
+
+        UUID topic() {
+            return topic;
+        }
+
+        UUID userId() {
+            return userId;
+        }
+
+        SseEmitter emitter() {
+            return emitter;
+        }
+
+        Map<UUID, Set<Subscription>> streams() {
+            return streams;
+        }
+
+        AtomicBoolean closed() {
+            return closed;
+        }
+    }
 
     public SseEmitterRegistry(QueueLessProperties properties, TaskScheduler scheduler) {
         this.config = properties.realtime();
@@ -95,7 +132,7 @@ public class SseEmitterRegistry implements SmartLifecycle {
                     .retryAfter(30);
         }
         SseEmitter emitter = new SseEmitter(config.emitterTimeout().toMillis());
-        Subscription subscription = new Subscription(topic, userId, emitter, streams, new AtomicBoolean());
+        Subscription subscription = new Subscription(topic, userId, emitter, streams);
         // compute() keeps add and remove atomic per key, so a subscription can never be added to a
         // set that a concurrent removal is detaching from the map.
         streams.compute(topic, (key, set) -> {
