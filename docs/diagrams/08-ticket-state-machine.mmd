@@ -1,0 +1,13 @@
+stateDiagram-v2
+    [*] --> BOOKED: appointment booked (token reserved)
+    [*] --> WAITING: walk-in (customer or desk)
+    BOOKED --> WAITING: check-in (owner or staff, from 60 min before)
+    BOOKED --> CANCELLED: cancel (owner or staff)
+    WAITING --> CALLED: call-next (staff, queue OPEN, counter free)
+    WAITING --> CANCELLED: leave queue or staff cancel
+    CALLED --> SERVING: start service (staff)
+    CALLED --> NO_SHOW: mark no-show (staff)
+    SERVING --> COMPLETED: complete (staff)
+    COMPLETED --> [*]
+    NO_SHOW --> [*]
+    CANCELLED --> [*]

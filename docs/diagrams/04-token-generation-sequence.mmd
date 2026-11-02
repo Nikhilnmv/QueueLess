@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    participant A as Request A (walk-in)
+    participant B as Request B (walk-in)
+    participant DB as PostgreSQL
+
+    par both requests arrive at the same moment
+        A->>DB: BEGIN
+        A->>DB: SELECT ... FROM service_queues WHERE id = Q FOR UPDATE
+        DB-->>A: row lock granted
+    and
+        B->>DB: BEGIN
+        B->>DB: SELECT ... FROM service_queues WHERE id = Q FOR UPDATE
+        Note over B,DB: B blocks until A commits (lock_timeout 5 s)
+    end
+    A->>DB: SELECT COALESCE(MAX(token_number), 0) WHERE queue = Q AND date = D
+    DB-->>A: 6
+    A->>DB: INSERT ticket token 7
+    A->>DB: UPDATE service_queues SET state_version = state_version + 1
+    A->>DB: COMMIT
+    DB-->>B: row lock granted
+    Note over B,DB: READ COMMITTED: the next statement sees A's committed ticket
+    B->>DB: SELECT COALESCE(MAX(token_number), 0) WHERE queue = Q AND date = D
+    DB-->>B: 7
+    B->>DB: INSERT ticket token 8
+    B->>DB: COMMIT
+    Note over A,DB: UNIQUE (queue_id, service_date, token_number) is the final safeguard:<br/>a duplicate token would be rejected, never stored

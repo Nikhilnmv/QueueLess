@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    actor C as Customer (browser)
+    participant API as AppointmentController
+    participant S as AppointmentService
+    participant L as QueueLockService
+    participant T as TicketService and TokenAllocator
+    participant DB as PostgreSQL
+    participant R as RealtimeEventRelay
+
+    C->>API: POST /api/queues/{id}/appointments<br/>{scheduledAt} + Idempotency-Key + X-XSRF-TOKEN
+    API->>S: book(queueId, userId, scheduledAt, key)
+    S->>DB: BEGIN
+    S->>L: lock(queueId)
+    L->>DB: SELECT ... FROM service_queues WHERE id = ? FOR UPDATE
+    Note over L,DB: concurrent bookings of this queue wait here
+    S->>DB: same Idempotency-Key used before by this user?
+    alt key already used
+        S-->>API: existing booking (replayed)
+        API-->>C: 200 OK + Idempotent-Replayed: true
+    else new request
+        S->>S: validate slot (future, within 14 days, on the slot grid, org time zone)
+        S->>DB: COUNT bookings in slot WHERE status <> CANCELLED
+        alt count >= capacity
+            S-->>API: SLOT_FULL
+            API-->>C: 409 problem detail
+        else place available
+            S->>DB: INSERT appointment (BOOKED, reference QL-XXXXXX)
+            S->>T: reserveForAppointment(lockedQueue, ...)
+            T->>DB: SELECT MAX(token_number) for queue and date
+            T->>DB: INSERT queue_ticket (BOOKED, token = max + 1)
+            S->>DB: INSERT notification APPOINTMENT_CONFIRMED
+            S->>DB: UPDATE service_queues SET state_version = state_version + 1
+            S->>DB: COMMIT (releases the lock)
+            DB-->>R: after commit: QueueChangedEvent
+            R-->>C: SSE queue-changed to subscribers (slots refresh)
+            API-->>C: 201 Created {appointment, token}
+        end
+    end

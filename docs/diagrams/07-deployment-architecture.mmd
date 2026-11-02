@@ -1,0 +1,19 @@
+flowchart LR
+    Dev["Developer laptop"] -- "git push" --> GH["GitHub repository"]
+    GH -- "GitHub Actions CI<br/>tests on PostgreSQL, E2E, docker build" --> CI["CI results"]
+    GH -- "auto-deploy on commit" --> Build["Render build<br/>multi-stage Dockerfile<br/>Node build, Maven package, CDS training"]
+    Build --> Svc
+
+    subgraph Render["Render (free web service, Singapore)"]
+        Edge["Render edge<br/>TLS termination, HTTPS"]
+        Svc["Container: Spring Boot jar + React build<br/>0.1 CPU, 512 MB, single instance<br/>sleeps after 15 min idle"]
+        Edge --> Svc
+    end
+
+    subgraph Neon["Neon (free PostgreSQL, AWS Singapore)"]
+        PG[("PostgreSQL<br/>direct endpoint, TLS required<br/>scale-to-zero after 5 min")]
+    end
+
+    User["Users' browsers"] -- "HTTPS (REST, SSE, static files)" --> Edge
+    Svc -- "JDBC over TLS, HikariCP max 5<br/>Flyway migrations at startup" --> PG
+    Ops["Operator"] -. "env vars: DATABASE_URL, DATABASE_USERNAME,<br/>DATABASE_PASSWORD, QUEUELESS_SEED_*" .-> Svc

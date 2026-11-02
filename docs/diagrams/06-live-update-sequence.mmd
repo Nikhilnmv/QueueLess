@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    actor C as Customer browser
+    participant ES as EventSource hook
+    participant REG as SseEmitterRegistry
+    participant SVC as Any queue write (transaction)
+    participant REL as RealtimeEventRelay
+    participant API as REST API
+
+    C->>ES: open ticket page
+    ES->>REG: GET /api/queues/{id}/events (session cookie)
+    REG-->>ES: event ready {queueId, version}
+    ES->>API: refetch snapshot (ticket, live summary)
+    loop every 20 s
+        REG-->>ES: comment heartbeat (detects dead connections)
+    end
+    SVC->>SVC: change queue and publish QueueChangedEvent (inside transaction)
+    alt transaction commits
+        SVC-->>REL: AFTER_COMMIT
+        REL->>REG: broadcast to queue subscribers
+        REG-->>ES: event queue-changed {queueId, version, reason}
+        ES->>API: invalidate cached queries and refetch
+        API-->>C: new position and estimate from PostgreSQL
+    else transaction rolls back
+        Note over SVC,REL: nothing is sent
+    end
+    Note over ES,REG: network drop: the browser reconnects, server restart: backoff 1 s to 30 s.<br/>Every reconnect receives ready again, so the snapshot is refetched and missed events do not matter.

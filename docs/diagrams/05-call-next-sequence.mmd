@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    actor S as Staff (browser)
+    participant API as StaffQueueController
+    participant O as QueueOperationsService
+    participant AC as AccessControlService
+    participant DB as PostgreSQL
+    participant N as NotificationService
+    participant R as RealtimeEventRelay
+    actor C as Called customer
+
+    S->>API: POST /api/staff/queues/{id}/call-next
+    API->>O: callNext(queueId, staffId)
+    O->>DB: organization of queue (scalar query)
+    O->>AC: require(staffId, organizationId, OPERATE_QUEUE)
+    AC->>DB: SELECT role FROM organization_memberships
+    alt not STAFF or ADMIN of this organization
+        AC-->>API: ACCESS_DENIED
+        API-->>S: 403
+    else authorized
+        O->>DB: BEGIN, SELECT ... FROM service_queues FOR UPDATE
+        O->>O: queue must be OPEN
+        O->>DB: any ticket CALLED or SERVING today?
+        alt counter busy
+            O-->>API: ACTIVE_TICKET_EXISTS
+            API-->>S: 409
+        else counter free
+            O->>DB: first WAITING ticket ORDER BY priority_rank, checked_in_at, created_at, id LIMIT 1
+            O->>DB: UPDATE ticket SET status = CALLED, called_at = now (flush)
+            Note over O,DB: partial unique index allows only one CALLED or SERVING per queue and day
+            O->>N: TURN_CALLED notification (same transaction)
+            O->>DB: TURN_APPROACHING for the new top 3 (once per ticket)
+            O->>DB: state_version + 1, COMMIT
+            DB-->>R: after commit
+            R-->>S: SSE queue-changed (board refetches)
+            R-->>C: SSE notification on personal stream
+            API-->>S: 200 called ticket
+        end
+    end

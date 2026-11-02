@@ -1,0 +1,40 @@
+flowchart TB
+    subgraph Browser["Browser (React + TypeScript SPA)"]
+        Customer["Customer screens<br/>discover, book, ticket, notifications"]
+        Staff["Staff dashboard<br/>live board, call next, serve"]
+        Admin["Admin dashboard<br/>queues, schedule, members"]
+        ES["EventSource (SSE client)"]
+    end
+
+    subgraph App["Spring Boot 3.5 modular monolith (single JVM, single origin)"]
+        Web["Static files + SPA fallback<br/>(React build in classpath:/static)"]
+        Sec["Spring Security<br/>session cookie, CSRF, URL rules"]
+        subgraph Modules["Feature modules"]
+            Auth["auth"]
+            Org["organization"]
+            Mem["membership<br/>AccessControlService"]
+            Q["queue<br/>QueueLockService"]
+            Appt["appointment"]
+            Tkt["ticket<br/>TokenAllocator, QueueOperations"]
+            Notif["notification"]
+            RT["realtime<br/>SseEmitterRegistry"]
+        end
+        Common["common<br/>errors, time, config"]
+    end
+
+    DB[("PostgreSQL (Neon)<br/>source of truth<br/>Flyway-managed schema")]
+
+    Customer -- "HTTPS REST /api" --> Sec
+    Staff -- "HTTPS REST /api" --> Sec
+    Admin -- "HTTPS REST /api" --> Sec
+    ES -- "GET /api/queues/{id}/events<br/>GET /api/me/events" --> Sec
+    Browser -- "GET / and app routes" --> Web
+    Sec --> Modules
+    Modules --> Common
+    Tkt -- "domain events" --> RT
+    Appt -- "domain events" --> RT
+    Q -- "domain events" --> RT
+    Notif -- "domain events" --> RT
+    RT -. "SSE push after commit" .-> ES
+    Modules -- "JPA / JDBC (HikariCP)" --> DB
+    Sec -- "Spring Session JDBC" --> DB
