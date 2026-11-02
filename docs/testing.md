@@ -22,6 +22,21 @@ Skipped tests: none. Not executed: the GitHub Actions workflow, `docker build` (
 development machine; the CI `docker` job builds the image), and tests against the hosted Render +
 Neon deployment (requires the account steps in [deployment.md](deployment.md)).
 
+## Final verification from a clean checkout (2 Nov 2026)
+
+The repository was cloned into an empty directory and verified exactly as a new contributor or CI
+would, at commit `5848f0b`:
+
+| Step | Result |
+|---|---|
+| `./mvnw verify` (backend, real PostgreSQL) | 70 unit + 70 integration tests passed, BUILD SUCCESS in 23 s |
+| `npm ci && npm run build` (frontend) | passed |
+| `./mvnw -DskipTests package` | jar with the React build (`BOOT-INF/classes/static`) |
+| `npx playwright test` (Playwright started the jar itself) | 6 passed |
+| Production-container simulation: jar extracted, CDS archive trained without a database, Dockerfile JVM flags, `prod` profile, `TZ=UTC`, empty database, Neon-style URL | migrations applied, demo data seeded, started in 2.1 s |
+| `scripts/smoke-test.sh` against it | **36 / 36 passed**; 323 MB resident afterwards |
+| Restart, then `--after-restart` | Flyway "up to date", started in 1.8 s, **4 / 4 passed**; demo data not duplicated |
+
 ## How the backend is tested
 
 - **Unit tests** (`*Test`, Surefire, no database, < 1 s): pure logic — state machines, wait-time
