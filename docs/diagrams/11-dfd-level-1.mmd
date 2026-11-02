@@ -1,0 +1,50 @@
+flowchart TB
+    Visitor["Visitor"]
+    Staff["Staff"]
+    Admin["Organization admin<br/>or platform admin"]
+
+    P1(("1.0<br/>Authenticate"))
+    P2(("2.0<br/>Browse services"))
+    P3(("3.0<br/>Book an<br/>appointment"))
+    P4(("4.0<br/>Issue and check in<br/>tokens"))
+    P5(("5.0<br/>Operate the<br/>counter"))
+    P6(("6.0<br/>Compute positions<br/>and waits"))
+    P7(("7.0<br/>Notify and push<br/>live updates"))
+    P8(("8.0<br/>Administer<br/>organizations"))
+
+    D1[("D1 Users and sessions")]
+    D2[("D2 Organizations and memberships")]
+    D3[("D3 Queues")]
+    D4[("D4 Appointments")]
+    D5[("D5 Tickets")]
+    D6[("D6 Notifications")]
+
+    Visitor -- "email, password" --> P1
+    P1 <-- "user, session" --> D1
+    Visitor -- "search" --> P2
+    D2 -- "organizations" --> P2
+    D3 -- "queues, hours" --> P2
+    P2 -- "service list, live numbers" --> Visitor
+    Visitor -- "slot, idempotency key" --> P3
+    D3 -- "schedule, capacity" --> P3
+    P3 <-- "appointment" --> D4
+    P3 -- "reserved token" --> D5
+    Visitor -- "join, check-in, cancel" --> P4
+    Staff -- "walk-in name, check-in" --> P4
+    P4 <-- "ticket with the next token" --> D5
+    Staff -- "call next, start, complete,<br/>no-show, priority" --> P5
+    P5 <-- "ticket status" --> D5
+    D3 -- "queue status" --> P5
+    D5 -- "waiting line,<br/>recent service times" --> P6
+    D3 -- "typical service time" --> P6
+    P6 -- "position, estimated wait" --> Visitor
+    P6 -- "live board" --> Staff
+    P3 -- "change event" --> P7
+    P4 -- "change event" --> P7
+    P5 -- "change event" --> P7
+    P7 <-- "notifications" --> D6
+    P7 -- "SSE events, notifications" --> Visitor
+    P7 -- "SSE events" --> Staff
+    Admin -- "queue settings, roles,<br/>new organization" --> P8
+    P8 <-- "organizations, memberships" --> D2
+    P8 <-- "queue settings" --> D3

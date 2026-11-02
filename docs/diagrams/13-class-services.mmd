@@ -1,0 +1,88 @@
+classDiagram
+    direction TB
+    class QueueLockService {
+        +lock(queueId) LockedQueue
+    }
+    class LockedQueue {
+        -ServiceQueue queue
+        ~LockedQueue(queue)
+    }
+    class TokenAllocator {
+        +nextToken(LockedQueue, serviceDate) int
+    }
+    class TicketService {
+        +joinQueue(queueId, userId) TicketResponse
+        +registerGuest(queueId, staffId, guestName, priority) BoardTicket
+        +reserveForAppointment(LockedQueue, appointmentId, userId) QueueTicket
+        +checkIn(LockedQueue, ticket, actorId)
+        +cancel(ticketId, actorId) TicketResponse
+    }
+    class QueueOperationsService {
+        +callNext(queueId, staffId) BoardTicket
+        +startService(ticketId, staffId) BoardTicket
+        +complete(ticketId, staffId) BoardTicket
+        +markNoShow(ticketId, staffId) BoardTicket
+        +changePriority(ticketId, staffId, priority) BoardTicket
+    }
+    class AppointmentService {
+        +slots(queueId, date) SlotsResponse
+        +book(queueId, userId, start, idempotencyKey) BookingResult
+        +checkIn(appointmentId, actorId) TicketResponse
+        +cancel(appointmentId, actorId) AppointmentResponse
+    }
+    class QueueReadService {
+        +live(queueId) QueueLiveResponse
+        +board(queueId, staffId) QueueBoardResponse
+        +ticket(ticketId, actorId) TicketResponse
+    }
+    class WaitTimeEstimator {
+        <<utility>>
+        +serviceTimeStats(recentDurations, defaultMinutes) ServiceTimeStats
+        +estimateWaitMinutes(peopleAhead, remainingAtCounter, stats) int
+        +positions(waitingCount, remainingAtCounter, stats) List~Position~
+    }
+    class AccessControlService {
+        +require(userId, organizationId, permission) MembershipRole
+        +has(userId, organizationId, permission) boolean
+    }
+    class QueueChangeRecorder {
+        +record(LockedQueue, serviceDate, reason) long
+    }
+    class NotificationService {
+        +notify(userId, ticketId, type, title, message) Notification
+        +list(userId, unreadOnly, limit) NotificationListResponse
+        +markRead(userId, notificationId) NotificationResponse
+    }
+    class RealtimeEventRelay {
+        <<after commit listener>>
+    }
+    class RealtimeGateway {
+        <<interface>>
+        +sendToQueue(queueId, eventName, payload)
+        +sendToUser(userId, eventName, payload)
+    }
+    class SseEmitterRegistry {
+        +subscribeToQueue(queueId, userId, readyPayload) SseEmitter
+        +subscribeToUser(userId, readyPayload) SseEmitter
+    }
+
+    QueueLockService ..> LockedQueue : creates
+    TokenAllocator ..> LockedQueue : needs
+    TicketService --> QueueLockService
+    TicketService --> TokenAllocator
+    QueueOperationsService --> QueueLockService
+    AppointmentService --> QueueLockService
+    AppointmentService --> TicketService
+    TicketService --> AccessControlService
+    QueueOperationsService --> AccessControlService
+    AppointmentService --> AccessControlService
+    QueueReadService --> AccessControlService
+    QueueReadService ..> WaitTimeEstimator : uses
+    TicketService --> QueueChangeRecorder
+    QueueOperationsService --> QueueChangeRecorder
+    AppointmentService --> QueueChangeRecorder
+    QueueChangeRecorder --> NotificationService
+    QueueChangeRecorder ..> RealtimeEventRelay : QueueChangedEvent
+    NotificationService ..> RealtimeEventRelay : UserNotificationEvent
+    RealtimeEventRelay --> RealtimeGateway
+    RealtimeGateway ..> SseEmitterRegistry : SSE implementation uses

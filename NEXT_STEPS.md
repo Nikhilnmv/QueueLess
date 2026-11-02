@@ -10,9 +10,9 @@ everything below is done.
   `npm run build`, `npx playwright test`) passed at `f180d4a`. `2ccc7be` then simplified the
   deployment: a plain `Dockerfile`, a minimal `render.yaml`, and `scripts/run-local.sh`; it also
   removed CI, Compose and the Makefile. The smoke test passed afterwards (36/36).
-- **`ui-redesign`** holds the UI redesign. Every page is rewritten and `npm run build` passes.
-  The end-to-end run and a visual check are still due (step 2). Work on this branch, and merge
-  it into `main` only when every check passes.
+- **`ui-redesign`** holds the finished UI redesign and the new diagrams. On 2 November
+  `npm run build`, `./mvnw verify` and `npx playwright test` (6 of 6) passed on it, and every
+  page was checked in a browser. Merge it into `main` once the docs below are done.
 
 The remaining work should leave a project ready for a university presentation and viva:
 - easy to deploy and to demo
@@ -21,7 +21,7 @@ The remaining work should leave a project ready for a university presentation an
 - a study guide for the viva
 - a UI that looks plain and hand-built rather than template-generated
 
-## 1. UI redesign (pages rewritten, checks due)
+## 1. UI redesign (done)
 
 **Style:**
 - Fonts: IBM Plex Sans and Plex Mono (`@fontsource`, imported in `src/main.tsx`).
@@ -77,7 +77,7 @@ below. Keep them, or update the specs:
   matches "It's your turn" (straight apostrophe) from the notification, and a second match
   would make it fail.
 
-## 2. Re-verify everything
+## 2. Re-verify everything (done on 2 November; repeat after further changes)
 
 Run these in order, then open every page in a browser at desktop and phone widths and fix
 anything that looks off:
@@ -95,20 +95,18 @@ Environment:
   `QUEUELESS_TEST_DATABASE_USERNAME` and `QUEUELESS_TEST_DATABASE_PASSWORD`.
 - Playwright needs `npx playwright install chromium`.
 
-## 3. Design diagrams for the report
+## 3. Design diagrams (done)
 
-`docs/diagrams` holds eight Mermaid sources (`01` to `08`).
-- Add:
-  - a use case diagram (visitor, staff, organization admin, platform admin)
-  - level 0 and level 1 data flow diagrams
-  - a class diagram of the domain model
-  - an activity diagram of one visit: join or book, check in, called, then served (or no-show
-    or cancelled)
-- Redraw `07-deployment-architecture.mmd` without CI and CDS: GitHub, then Render building the
-  `Dockerfile` into one container that serves both the React build and the API, then Neon
-  PostgreSQL.
-- Render every diagram to PNG in `docs/diagrams/png` (for example with
-  `npx @mermaid-js/mermaid-cli`) and list them in `docs/diagrams/README.md`.
+`docs/diagrams` holds 14 Mermaid sources:
+- architecture and the ER diagram
+- four sequence diagrams
+- deployment and the ticket state machine
+- use case, DFD level 0 and DFD level 1
+- two class diagrams and an activity diagram
+
+PNGs are in `docs/diagrams/png`. After editing a source, run `node scripts/render-diagrams.mjs`
+(the one-time setup is at the top of the script). It re-renders the PNGs and copies every source
+into `docs/diagrams/README.md`.
 
 ## 4. Screenshots
 

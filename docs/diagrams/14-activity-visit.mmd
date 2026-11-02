@@ -1,0 +1,22 @@
+flowchart TD
+    Start((Start)) --> Choose{"Walk in or book?"}
+    Choose -- "walk in" --> Join["Take a token for today<br/>(next number under the queue lock)"]
+    Choose -- "book" --> Slot["Pick a day and a free slot"]
+    Slot --> Book["Confirm the booking<br/>(capacity check, idempotency key)"]
+    Book --> Reserved["Token reserved: BOOKED<br/>confirmation notification"]
+    Reserved --> Arrive{"Comes on the day?"}
+    Arrive -- "cancels" --> Cancelled["CANCELLED<br/>(a booked slot becomes free)"]
+    Arrive -- "does not come" --> Expired["Ticket expires after the day"]
+    Arrive -- "yes, from 60 min before" --> CheckIn["Check in<br/>(visitor or staff)"]
+    CheckIn --> Waiting["WAITING in line<br/>position and estimate update live"]
+    Join --> Waiting
+    Waiting -- "leaves the queue" --> Cancelled
+    Waiting --> Called["Staff call next: CALLED<br/>notification: it's your turn"]
+    Called --> Present{"At the counter?"}
+    Present -- "no" --> NoShow["NO_SHOW"]
+    Present -- "yes" --> Serving["Staff start service: SERVING"]
+    Serving --> Completed["Staff complete: COMPLETED"]
+    Completed --> Stop(((End)))
+    NoShow --> Stop
+    Cancelled --> Stop
+    Expired --> Stop

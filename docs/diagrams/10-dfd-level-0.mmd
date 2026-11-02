@@ -1,0 +1,15 @@
+flowchart TB
+    Visitor["Visitor"]
+    System(("0<br/>QueueLess"))
+    Staff["Staff"]
+    Admin["Organization admin"]
+    Platform["Platform admin"]
+
+    Visitor -- "account details, join and booking<br/>requests, check-ins, cancellations" --> System
+    System -- "tokens, positions, waits, confirmations,<br/>notifications, live updates" --> Visitor
+    System -- "live board, counts,<br/>averages" --> Staff
+    Staff -- "queue status, call next, start,<br/>complete, no-show, priority,<br/>walk-in details" --> System
+    System -- "queues and<br/>members" --> Admin
+    Admin -- "queue settings,<br/>members and roles,<br/>profile" --> System
+    System -- "created<br/>organization" --> Platform
+    Platform -- "new organization,<br/>first admin's email" --> System

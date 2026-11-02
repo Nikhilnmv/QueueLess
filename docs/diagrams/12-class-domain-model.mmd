@@ -1,0 +1,134 @@
+classDiagram
+    direction LR
+    class User {
+        UUID id
+        String email
+        String fullName
+        String passwordHash
+        boolean enabled
+        boolean platformAdmin
+    }
+    class Organization {
+        UUID id
+        String name
+        String slug
+        String description
+        String timezone
+        boolean active
+    }
+    class OrganizationMembership {
+        UUID id
+        MembershipRole role
+    }
+    class ServiceQueue {
+        UUID id
+        String name
+        String tokenPrefix
+        QueueStatus status
+        boolean bookingEnabled
+        LocalTime openingTime
+        LocalTime closingTime
+        int slotDurationMinutes
+        int capacityPerSlot
+        int defaultServiceMinutes
+        long stateVersion
+    }
+    class Appointment {
+        UUID id
+        Instant scheduledAt
+        LocalDate serviceDate
+        String bookingReference
+        AppointmentStatus status
+        UUID idempotencyKey
+        Instant cancelledAt
+    }
+    class QueueTicket {
+        UUID id
+        String guestName
+        TicketSource source
+        LocalDate serviceDate
+        int tokenNumber
+        TicketStatus status
+        TicketPriority priority
+        Instant checkedInAt
+        Instant calledAt
+        Instant serviceStartedAt
+        Instant completedAt
+        Instant approachNotifiedAt
+    }
+    class Notification {
+        UUID id
+        NotificationType type
+        String title
+        String message
+        Instant readAt
+    }
+    class MembershipRole {
+        <<enumeration>>
+        CUSTOMER
+        STAFF
+        ADMIN
+    }
+    class QueueStatus {
+        <<enumeration>>
+        OPEN
+        PAUSED
+        CLOSED
+    }
+    class AppointmentStatus {
+        <<enumeration>>
+        BOOKED
+        CHECKED_IN
+        COMPLETED
+        NO_SHOW
+        CANCELLED
+    }
+    class TicketStatus {
+        <<enumeration>>
+        BOOKED
+        WAITING
+        CALLED
+        SERVING
+        COMPLETED
+        NO_SHOW
+        CANCELLED
+    }
+    class TicketPriority {
+        <<enumeration>>
+        HIGH
+        NORMAL
+        LOW
+    }
+    class TicketSource {
+        <<enumeration>>
+        APPOINTMENT
+        WALK_IN
+        GUEST_WALK_IN
+    }
+    class NotificationType {
+        <<enumeration>>
+        APPOINTMENT_CONFIRMED
+        APPOINTMENT_CANCELLED
+        TICKET_CANCELLED
+        TURN_APPROACHING
+        TURN_CALLED
+        MARKED_NO_SHOW
+    }
+
+    User "1" -- "0..*" OrganizationMembership : has
+    Organization "1" -- "0..*" OrganizationMembership : grants
+    Organization "1" *-- "0..*" ServiceQueue : runs
+    ServiceQueue "1" *-- "0..*" Appointment : books
+    ServiceQueue "1" *-- "0..*" QueueTicket : issues
+    User "1" -- "0..*" Appointment : makes
+    User "0..1" -- "0..*" QueueTicket : holds
+    Appointment "1" -- "0..1" QueueTicket : reserves
+    User "1" -- "0..*" Notification : receives
+    QueueTicket "0..1" -- "0..*" Notification : about
+    OrganizationMembership ..> MembershipRole
+    ServiceQueue ..> QueueStatus
+    Appointment ..> AppointmentStatus
+    QueueTicket ..> TicketStatus
+    QueueTicket ..> TicketPriority
+    QueueTicket ..> TicketSource
+    Notification ..> NotificationType

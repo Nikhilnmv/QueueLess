@@ -1,19 +1,18 @@
 flowchart LR
     Dev["Developer laptop"] -- "git push" --> GH["GitHub repository"]
-    GH -- "GitHub Actions CI<br/>tests on PostgreSQL, E2E, docker build" --> CI["CI results"]
-    GH -- "auto-deploy on commit" --> Build["Render build<br/>multi-stage Dockerfile<br/>Node build, Maven package, CDS training"]
+    GH -- "deploys on every push to main" --> Build["Render build<br/>Dockerfile: Node builds the React app,<br/>Maven packages it into the jar"]
     Build --> Svc
 
     subgraph Render["Render (free web service, Singapore)"]
-        Edge["Render edge<br/>TLS termination, HTTPS"]
-        Svc["Container: Spring Boot jar + React build<br/>0.1 CPU, 512 MB, single instance<br/>sleeps after 15 min idle"]
+        Edge["Render edge<br/>HTTPS"]
+        Svc["One container: Spring Boot jar<br/>serves the React build, REST API and SSE<br/>0.1 CPU, 512 MB, sleeps after 15 min idle"]
         Edge --> Svc
     end
 
-    subgraph Neon["Neon (free PostgreSQL, AWS Singapore)"]
-        PG[("PostgreSQL<br/>direct endpoint, TLS required<br/>scale-to-zero after 5 min")]
+    subgraph Neon["Neon (free PostgreSQL, same region)"]
+        PG[("PostgreSQL<br/>TLS required<br/>scales to zero when idle")]
     end
 
-    User["Users' browsers"] -- "HTTPS (REST, SSE, static files)" --> Edge
-    Svc -- "JDBC over TLS, HikariCP max 5<br/>Flyway migrations at startup" --> PG
-    Ops["Operator"] -. "env vars: DATABASE_URL, DATABASE_USERNAME,<br/>DATABASE_PASSWORD, QUEUELESS_SEED_*" .-> Svc
+    User["Users' browsers"] -- "HTTPS: pages, REST, SSE" --> Edge
+    Svc -- "JDBC over TLS (HikariCP)<br/>Flyway migrations at startup" --> PG
+    Owner["Project owner"] -. "Render environment variables:<br/>DATABASE_URL, QUEUELESS_SEED_PASSWORD" .-> Svc
