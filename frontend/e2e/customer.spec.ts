@@ -10,7 +10,8 @@ test('a customer registers, books and cancels an appointment, then joins a queue
   await page.getByLabel('Confirm password').fill('e2e-password-1');
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading', { name: 'Hello, E2E Customer' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My visits' })).toBeVisible();
+  await expect(page.getByText('Signed in as E2E Customer')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
 
   // Discover an organization and a queue.
@@ -21,7 +22,7 @@ test('a customer registers, books and cancels an appointment, then joins a queue
   const queueUrl = page.url();
 
   // Book the first free slot tomorrow.
-  await page.getByRole('link', { name: 'Choose a slot' }).click();
+  await page.getByRole('link', { name: 'Choose a time' }).click();
   await page.getByRole('option').nth(1).click();
   await page.locator('button[aria-pressed]:not([disabled])').first().click();
   await page.getByRole('button', { name: 'Confirm booking' }).click();
@@ -30,7 +31,7 @@ test('a customer registers, books and cancels an appointment, then joins a queue
   await expect(page.getByText(/^G-\d{3}$/).first()).toBeVisible();
 
   // It appears on the dashboard.
-  await page.getByRole('link', { name: 'Back to my queue' }).click();
+  await page.getByRole('link', { name: 'Back to my visits' }).click();
   await expect(page.getByRole('heading', { name: 'Upcoming appointments', exact: true })).toBeVisible();
   await page.getByRole('link', { name: /General OPD/ }).first().click();
 
@@ -45,8 +46,8 @@ test('a customer registers, books and cancels an appointment, then joins a queue
   await page.getByRole('button', { name: 'Get a token' }).click();
   await expect(page).toHaveURL(/\/tickets\//);
   await expect(page.getByTestId('token')).toHaveText(/^G-\d{3}$/);
-  await expect(page.getByText('Your position')).toBeVisible();
-  await expect(page.getByText(/^#\d+$/)).toBeVisible();
+  await expect(page.getByText('Your place in line')).toBeVisible();
+  await expect(page.getByTestId('position')).toHaveText(/^\d+$/);
 });
 
 test('protected pages send anonymous visitors to the login page', async ({ page }) => {

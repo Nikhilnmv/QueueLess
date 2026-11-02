@@ -199,6 +199,7 @@ export function Details({ rows }: { rows: [string, ReactNode][] }) {
 }
 
 // Shared table classes so every list looks the same.
-export const table = 'w-full border-collapse text-left text-sm';
+// The last row drops its border because every table sits inside a bordered box.
+export const table = 'w-full border-collapse text-left text-sm [&_tbody_tr:last-child_td]:border-b-0';
 export const th = 'border-b border-stone-200 bg-stone-50 px-3 py-2 font-medium text-stone-600';
 export const td = 'border-b border-stone-100 px-3 py-2 align-middle';

@@ -10,9 +10,9 @@ everything below is done.
   `npm run build`, `npx playwright test`) passed at `f180d4a`. `2ccc7be` then simplified the
   deployment: a plain `Dockerfile`, a minimal `render.yaml`, and `scripts/run-local.sh`; it also
   removed CI, Compose and the Makefile. The smoke test passed afterwards (36/36).
-- **`ui-redesign`** holds a half-finished UI redesign. `npm run build` fails on this branch
-  until step 1 is done. Work on this branch and merge it into `main` only when every check
-  passes again.
+- **`ui-redesign`** holds the UI redesign. Every page is rewritten and `npm run build` passes.
+  The end-to-end run and a visual check are still due (step 2). Work on this branch, and merge
+  it into `main` only when every check passes.
 
 The remaining work should leave a project ready for a university presentation and viva:
 - easy to deploy and to demo
@@ -21,7 +21,7 @@ The remaining work should leave a project ready for a university presentation an
 - a study guide for the viva
 - a UI that looks plain and hand-built rather than template-generated
 
-## 1. Finish the UI redesign (in progress)
+## 1. UI redesign (pages rewritten, checks due)
 
 **Style:**
 - Fonts: IBM Plex Sans and Plex Mono (`@fontsource`, imported in `src/main.tsx`).
@@ -47,22 +47,9 @@ The remaining work should leave a project ready for a university presentation an
 - `src/components/StatusBadges.tsx`: `QueueStatusBadge`, `TicketStatusBadge`,
   `AppointmentStatusBadge`, `PriorityBadge`, `LiveIndicator` (its text must stay "Live").
 
-**Already rewritten** (use these as the reference):
-- `Layout`, `Toast`, `StatusBadges`, `ui`
-- `LandingPage`, `LoginPage`, `RegisterPage`, `OrganizationsPage`, `OrganizationPage`,
-  `QueuePage`, `BookAppointmentPage`, `DashboardPage`, `TicketPage`, `AppointmentPage`,
-  `NotificationsPage`
-
-**Still on the old UI.** These files import components that no longer exist (`Card`, `Badge`,
-`Spinner`, `EmptyState`, `ErrorState`, `Alert`, `Stat`, `PageHeader`) or `lucide-react` icons:
-- `pages/staff/StaffHomePage.tsx`, `pages/staff/StaffQueuePage.tsx`
-- `pages/admin/AdminHomePage.tsx`, `pages/admin/AdminOrganizationPage.tsx`,
-  `pages/admin/QueueFormDialog.tsx`
-- `pages/platform/PlatformPage.tsx`
-- `pages/NotFoundPage.tsx` (also exports `RouteErrorPage`), `pages/AccessDeniedPage.tsx`
-- `auth/guards.tsx` (switch it to `ErrorNotice` and `Loading`)
-- `components/QueueLivePanel.tsx` and `components/TicketCard.tsx`: delete them once nothing
-  imports them. Move `estimateBasisText` to wherever it is still needed.
+**Status:** every page and component now uses these building blocks; the staff, admin,
+platform and error pages were the last to change. `QueueLivePanel` and `TicketCard` were
+deleted.
 
 Leave the data layer as it is: `api/queries.ts`, `api/client.ts`, `realtime/hooks.ts`,
 `lib/format.ts`, `router.tsx`.
@@ -79,13 +66,16 @@ below. Keep them, or update the specs:
 - `data-testid="token"`.
 - The day chips (`role=listbox` / `option`) and the slot buttons (`aria-pressed`).
 
-**Renames already made.** The specs still need to follow these:
-- "Choose a slot" is now "Book an appointment".
+**Renames made** (the specs are already updated):
+- The booking link on the queue page is "Choose a time" (it was "Choose a slot"). The booking
+  page heading is "Book an appointment".
 - "Back to my queue" is now "Back to my visits".
-- The dashboard heading is "My visits".
-- The ticket position is in `data-testid="position"` ("Number N in line").
-- `TicketPage` writes "It’s your turn!" with a typographic apostrophe; match what the spec
-  expects.
+- The dashboard heading is "My visits", with "Signed in as …" under it (it was "Hello, …").
+- The ticket page shows "Your place in line", with the position in `data-testid="position"`
+  ("Number N in line"; it was "#N").
+- Keep the typographic apostrophe in `TicketPage`'s "It’s your turn!". The staff spec also
+  matches "It's your turn" (straight apostrophe) from the notification, and a second match
+  would make it fail.
 
 ## 2. Re-verify everything
 
@@ -134,7 +124,9 @@ Run the app with demo data (`scripts/run-local.sh`). Capture these screens at 12
 
 The login page lists the demo accounts. The local development password is `Password123!`.
 
-## 5. Project report
+## 5. Project report (on hold)
+
+Not wanted yet. Write it only when the owner asks for it. The outline below is for that time.
 
 Write `docs/report/project-report.md` (plus a Word copy if a Word tool is available) in the
 usual university project format:

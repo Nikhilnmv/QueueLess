@@ -23,7 +23,7 @@ test('staff call a customer and the customer sees it live, without reloading', a
   await customerPage.goto(`/queues/${queue.id}`);
   await customerPage.getByRole('button', { name: 'Get a token' }).click();
   await expect(customerPage.getByTestId('token')).toHaveText('E-001');
-  await expect(customerPage.getByText('#1')).toBeVisible();
+  await expect(customerPage.getByTestId('position')).toHaveText('1');
   await expect(customerPage.getByText('Live', { exact: true })).toBeVisible();
 
   // The staff board shows the customer; staff call them.

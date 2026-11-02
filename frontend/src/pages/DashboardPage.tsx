@@ -39,16 +39,18 @@ function AppointmentRows({ appointments }: { appointments: Appointment[] }) {
     <div className="overflow-x-auto rounded-md border border-stone-200 bg-white">
       <table className={table}>
         <thead>
-          <tr><th className={th}>When</th><th className={th}>Counter</th><th className={th}>Token</th><th className={th}>Status</th><th className={th}><span className="sr-only">Open</span></th></tr>
+          <tr><th className={th}>When</th><th className={th}>Counter</th><th className={th}>Token</th><th className={th}>Status</th></tr>
         </thead>
         <tbody>
           {appointments.map((a) => (
             <tr key={a.id} className="hover:bg-stone-50">
               <td className={`${td} whitespace-nowrap`}>{formatDateTime(a.scheduledAt, a.timezone)}</td>
-              <td className={td}>{a.queueName}<span className="block text-xs text-stone-500">{a.organizationName}</span></td>
+              <td className={td}>
+                <Link to={`/appointments/${a.id}`} className="font-medium text-pine-700 hover:underline">{a.queueName}</Link>
+                <span className="block text-xs text-stone-500">{a.organizationName}</span>
+              </td>
               <td className={`${td} font-mono`}>{a.displayToken ?? ''}</td>
               <td className={td}><AppointmentStatusBadge status={a.status} />{a.canCheckIn && <span className="ml-2 text-xs text-pine-700">check-in open</span>}</td>
-              <td className={`${td} text-right`}><Link to={`/appointments/${a.id}`} className="text-pine-700 hover:underline">{a.queueName}</Link></td>
             </tr>
           ))}
         </tbody>
