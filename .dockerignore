@@ -1,0 +1,16 @@
+# Keep the build context small and free of secrets and local state.
+.git
+.github
+.claude
+.local
+.env
+.env.*
+.smoke-state
+**/.DS_Store
+docs
+scripts
+backend/target
+frontend/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report

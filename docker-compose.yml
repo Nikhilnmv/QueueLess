@@ -1,0 +1,23 @@
+# Local PostgreSQL for development and integration tests (alternative to
+# scripts/local-postgres.sh for machines with Docker). Same port and credentials:
+#   docker compose up -d db
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: queueless
+      POSTGRES_PASSWORD: queueless   # local development only
+      POSTGRES_DB: queueless
+    ports:
+      - "5433:5432"
+    volumes:
+      - queueless-db:/var/lib/postgresql/data
+      - ./scripts/docker-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U queueless -d queueless"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  queueless-db:
