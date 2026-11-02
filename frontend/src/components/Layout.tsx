@@ -82,7 +82,11 @@ export function Layout() {
                 <span className="hidden text-sm text-slate-600 sm:inline" title={user.email}>{user.fullName}</span>
                 <button
                   type="button"
-                  onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/') })}
+                  onClick={() => {
+                    // Leave protected pages first, so they do not redirect to the login page.
+                    navigate('/');
+                    logout.mutate();
+                  }}
                   className="rounded-full p-2 text-slate-600 hover:bg-slate-100"
                   aria-label="Log out"
                   title="Log out"

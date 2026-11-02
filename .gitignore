@@ -34,3 +34,6 @@ frontend/playwright/.cache/
 .DS_Store
 Thumbs.db
 .smoke-state
+
+# --- Local tool configuration ---------------------------------------------------
+.claude/

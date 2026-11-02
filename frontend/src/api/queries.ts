@@ -42,6 +42,16 @@ export const keys = {
   adminMembers: (orgId: string) => ['admin', orgId, 'members'] as const,
 };
 
+/**
+ * Called when the signed-in identity changes (login, registration, logout). Drops every cached
+ * query except the current user, so no data of a previous user can flash on screen, while the
+ * mounted ['me'] query keeps its observers (clearing the whole cache would detach them).
+ */
+function switchIdentity(client: QueryClient, user: CurrentUser | null) {
+  client.removeQueries({ predicate: (query) => query.queryKey[0] !== 'me' });
+  client.setQueryData(keys.me, user);
+}
+
 /** Refreshes everything that may change when a queue changes (called on SSE events). */
 export function invalidateQueue(client: QueryClient, queueId: string) {
   void client.invalidateQueries({ queryKey: keys.queue(queueId) });
@@ -72,10 +82,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (body: { email: string; password: string }) =>
       api<CurrentUser>('/api/auth/login', { method: 'POST', body }),
-    onSuccess: (user) => {
-      client.clear();
-      client.setQueryData(keys.me, user);
-    },
+    onSuccess: (user) => switchIdentity(client, user),
   });
 }
 
@@ -84,10 +91,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (body: { email: string; fullName: string; password: string }) =>
       api<CurrentUser>('/api/auth/register', { method: 'POST', body }),
-    onSuccess: (user) => {
-      client.clear();
-      client.setQueryData(keys.me, user);
-    },
+    onSuccess: (user) => switchIdentity(client, user),
   });
 }
 
@@ -95,10 +99,7 @@ export function useLogout() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: () => api<void>('/api/auth/logout', { method: 'POST' }),
-    onSettled: () => {
-      client.clear();
-      client.setQueryData(keys.me, null);
-    },
+    onSettled: () => switchIdentity(client, null),
   });
 }
 
