@@ -2,9 +2,7 @@
 
 Everything below was **executed**; nothing is reported as passing without a run. Results are
 from the local development machine (macOS, Apple Silicon, JDK 21.0.8, PostgreSQL 17.9, Node 26,
-Chromium 156 via Playwright 1.64). CI (`.github/workflows/ci.yml`) runs the same suites on
-GitHub's Ubuntu runners; it has been written but **not yet run**, because the repository has not
-been pushed to GitHub yet.
+Chromium 156 via Playwright 1.64).
 
 ## Summary of the latest runs
 
@@ -12,15 +10,19 @@ been pushed to GitHub yet.
 |---|---|---|
 | Backend unit tests | `cd backend && ./mvnw test` | **70 passed**, 0 failed, 0 skipped |
 | Backend integration + concurrency (real PostgreSQL) | `cd backend && ./mvnw verify` | **70 passed**, 0 failed, 0 skipped (whole build ≈ 22 s) |
-| Frontend type check + production build | `cd frontend && npm run build` | passed (TypeScript 7.0.2, Vite 8.3.5; 459 KB JS / 136 KB gzipped, 29 KB CSS) |
+| Frontend type check + production build | `cd frontend && npm run build` | passed (TypeScript 7.0.2, Vite 8.3.5; after the UI redesign 439 KB JS / 130 KB gzipped, 33 KB CSS) |
 | End-to-end (Playwright, Chromium, packaged app) | `cd frontend && npx playwright test` | **6 passed** |
 | Smoke test against the production jar (prod profile, fresh database) | `scripts/smoke-test.sh http://localhost:8081` | **36 / 36 checks passed** |
 | Persistence after restart | `scripts/smoke-test.sh http://localhost:8081 --after-restart` | **4 / 4 checks passed** |
-| Mermaid diagrams | rendered with Mermaid 12.2 in headless Chromium | 8 / 8 render |
+| Mermaid diagrams | `node scripts/render-diagrams.mjs` (Mermaid 12.2, headless Chromium) | **14 / 14** render |
 
-Skipped tests: none. Not executed: the GitHub Actions workflow, `docker build` (no Docker on the
-development machine; the CI `docker` job builds the image), and tests against the hosted Render +
-Neon deployment (requires the account steps in [deployment.md](deployment.md)).
+The unit, integration, build and Playwright rows were last run on 2 Nov 2026 on branch
+`ui-redesign`, after the UI redesign (`./mvnw verify`: BUILD SUCCESS in 21 s). The smoke-test rows
+are from the runs described below.
+
+Skipped tests: none. Not executed: `docker build` (Docker is not installed on the development
+machine; Render builds the image) and tests against the hosted Render + Neon deployment (it needs
+the account steps in [deployment.md](deployment.md)).
 
 ## Final verification from a clean checkout (2 Nov 2026)
 
@@ -36,6 +38,10 @@ would, at commit `5848f0b`:
 | Production-container simulation: jar extracted, CDS archive trained without a database, Dockerfile JVM flags, `prod` profile, `TZ=UTC`, empty database, Neon-style URL | migrations applied, demo data seeded, started in 2.1 s |
 | `scripts/smoke-test.sh` against it | **36 / 36 passed**; 323 MB resident afterwards |
 | Restart, then `--after-restart` | Flyway "up to date", started in 1.8 s, **4 / 4 passed**; demo data not duplicated |
+
+The Dockerfile was simplified afterwards (commit `2ccc7be`): a plain three-stage build without the
+CDS archive. With its settings (prod profile, its JVM flags, a JDBC URL with embedded credentials)
+the smoke test passed 36 / 36 again; the app used 312 MB resident and started in 4.7 s.
 
 ## How the backend is tested
 
@@ -94,7 +100,7 @@ Run against the packaged jar (Spring Boot serving the React build) with demo dat
 2. Anonymous visitors to `/dashboard` are redirected to `/login?next=/dashboard`.
 3. Unknown routes show the not-found page.
 4. **Live update across browsers:** an admin creates an empty queue; a customer in a second
-   browser context joins (token E-001, position #1, "Live" indicator); staff call next on the
+   browser context joins (token E-001, position 1, "Live" indicator); staff call next on the
    board; the customer's page shows "It's your turn!" and a notification toast **without
    reloading**; start and complete update both screens; the notification is listed afterwards.
 5. Staff of Northbridge College cannot open a City Care board ("do not have permission").
@@ -125,6 +131,9 @@ another session moved the position from #4 to #3 and showed a toast without relo
 board (counter, Call next disabled with reason, waiting line, priority change reordering the line,
 start/complete/call next); admin organization page, members tab and last-admin error.
 
+After the UI redesign (2 Nov 2026) these screens were checked again in a browser: home, organization,
+queue, login, My visits, ticket, staff board, admin queues and members, and access denied.
+
 ## Bugs found by testing (and fixed)
 
 | Found by | Bug | Fix |
@@ -140,8 +149,8 @@ start/complete/call next); admin organization page, members tab and last-admin e
 
 | Measurement | Value | How |
 |---|---|---|
-| Startup (prod profile, local DB) | ~3.1 s; **~1.8 s with the CDS archive** | `Started QueueLessApplication in ...`, 3 runs each |
-| Resident memory after smoke load | ~321 MB with the Dockerfile's flags (192 MB heap) | `ps -o rss`, `jcmd VM.native_memory` |
+| Startup (prod profile, local DB) | ~3.1 s; 4.7 s with the current Dockerfile's JVM flags | `Started QueueLessApplication in ...` |
+| Resident memory after smoke load | ~312 MB with the current Dockerfile's flags | `ps -o rss` |
 | Backend full build with all tests | ~22 s | Maven |
 
 These are single-machine observations, not benchmarks; throughput and latency targets for the
@@ -158,7 +167,7 @@ hosted service are not claimed. Expect much slower cold starts on a 0.1-CPU free
 ## Running the tests yourself
 
 ```bash
-scripts/local-postgres.sh start            # or: docker compose up -d db
+scripts/local-postgres.sh start            # PostgreSQL on localhost:5433
 cd backend && ./mvnw verify                 # unit + integration + concurrency
 cd ../frontend && npm ci && npm run build   # type check + production build
 cd ../backend && ./mvnw -DskipTests package # jar with the React build

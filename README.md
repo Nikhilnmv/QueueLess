@@ -1,115 +1,88 @@
 # QueueLess
 
-Real-time queue and appointment management for clinics, college offices, laboratories and help
-desks. Customers book a slot or take a token, watch their live position and estimated wait, and
-are notified when their turn approaches and when they are called. Staff run the line from a live
-board; administrators configure queues, schedules, capacity and staff. Many organizations share
-one platform, each isolated from the others.
+QueueLess is a web application for running service queues and appointments online, made for
+clinics, college offices and help desks.
+- **Visitors** book a slot or take a token for today, then follow their place in line and
+  estimated wait as it updates live. They are notified when their turn is near and when they are
+  called.
+- **Staff** run the counter from a live board.
+- **Administrators** set up queues, hours, slot sizes and staff.
 
-**Stack:** Java 21 · Spring Boot 3.5 (Web MVC, Security, Data JPA, Validation, Actuator, Session
-JDBC) · Flyway · PostgreSQL · React 19 + TypeScript + Vite + Tailwind CSS + React Router +
-TanStack Query · Server-Sent Events · Playwright · Docker · Render + Neon.
+Each organization sees only its own data.
 
-**Status:** feature-complete and tested locally (70 unit, 70 PostgreSQL integration/concurrency,
-6 end-to-end, 36-check smoke test against the production jar). Hosted deployment is prepared;
-it needs the account steps in [docs/deployment.md](docs/deployment.md).
-
-## What it does
-
-| Customers | Staff | Administrators |
+| Visitors | Staff | Administrators |
 |---|---|---|
-| register / log in | live board: who is at the counter, waiting line in service order, expected arrivals | create and configure queues (hours, slot length, capacity, typical service time, token prefix, bookings on/off) |
-| discover organizations and queues with live waiting counts | call next, start, complete, mark no-show | add members by email and set roles (customer / staff / admin) |
-| book an appointment slot (safe against overbooking and double clicks) | open, pause, close the queue | edit the organization profile |
-| join today's line as a walk-in and get a token (`G-007`) | register walk-ins for people without an account, with priority | (platform operator) provision new organizations |
-| check in on arrival, cancel, leave the queue | change priority, check in or cancel on a customer's behalf | |
-| live position and estimated wait, "it's your turn" alert, saved notifications | everything updates live | |
+| find a service and see live waiting numbers | live board: who is at the counter, the waiting line, expected bookings | create and edit queues: hours, slot length, capacity, typical service time |
+| take a token for today (`G-007`) | call next, start, complete, mark no-show | add members by email and set their roles |
+| book an appointment slot, check in on arrival, cancel | open, pause or close the queue | edit the organization profile |
+| follow position and estimated wait live, get notified | register walk-ins without an account, change priority | (platform admin) create organizations |
 
-## Quick start (local)
+**Built with:** Java 21, Spring Boot 3.5, PostgreSQL, Flyway, React 19, TypeScript, Vite,
+Tailwind CSS, TanStack Query, Server-Sent Events and Playwright. It is hosted on Render and Neon
+(free plans).
 
-Requirements: JDK 21, Node 22.22+ (Node 24 recommended), PostgreSQL 16+ server binaries
-(`brew install postgresql@17`) **or** Docker.
+## Run it
 
-```bash
-# 1. Database on localhost:5433 (choose one)
-scripts/local-postgres.sh start
-docker compose up -d db
-
-# 2. Backend with demo data on http://localhost:8080
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)        # macOS
-cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-
-# 3. Frontend with hot reload on http://localhost:5173 (new terminal)
-cd frontend && npm install && npm run dev
-```
-
-Or run the production build as one process:
+You need JDK 21, Node 22 or newer, and the PostgreSQL 17 server (`brew install postgresql@17`).
 
 ```bash
-cd frontend && npm ci && npm run build
-cd ../backend && ./mvnw -DskipTests package
-java -jar target/queueless.jar --spring.profiles.active=dev   # http://localhost:8080
+scripts/run-local.sh
 ```
 
-### Demo accounts (dev profile, password `Password123!`)
+Open http://localhost:8080 and log in with a demo account. The password is `Password123!`.
 
 | Email | Role |
 |---|---|
-| `asha@example.com`, `ravi@example.com`, `meera@example.com` | customers |
-| `staff@citycare.example` / `admin@citycare.example` | City Care Clinic staff / admin |
-| `staff@northbridge.example` / `admin@northbridge.example` | Northbridge College Office staff / admin |
-| `platform@queueless.test` | platform operator |
+| `asha@example.com` | visitor |
+| `staff@citycare.example` | staff, City Care Clinic |
+| `admin@citycare.example` | administrator, City Care Clinic |
+| `platform@queueless.test` | platform admin |
 
-Try it: log in as Asha in one window and join *General OPD*; log in as `staff@citycare.example` in
-a private window, open **Staff → General OPD** and press **Call next** — Asha's screen updates
-without reloading.
+The [user guide](docs/user-guide.md) lists every account and covers each role, a demo script for a
+presentation, and troubleshooting.
 
 ## Tests
 
 ```bash
-cd backend && ./mvnw test        # 70 unit tests, no database
-cd backend && ./mvnw verify      # + 70 integration and concurrency tests on PostgreSQL
-cd frontend && npm run build     # TypeScript check + production build
-cd frontend && npx playwright install chromium && npx playwright test   # 6 E2E tests
-QUEUELESS_DEMO_PASSWORD='Password123!' scripts/smoke-test.sh http://localhost:8080
+cd backend && ./mvnw verify                 # 70 unit + 70 integration and concurrency tests (PostgreSQL)
+cd frontend && npm run build                # type check and production build
+cd frontend && npx playwright test          # 6 browser tests against the packaged app
 ```
 
-See [docs/testing.md](docs/testing.md) for what each suite covers and the latest results.
+[docs/testing.md](docs/testing.md) has the results and what each suite covers.
 
 ## Deploy
 
-One Docker image serves the React build and the API (`Dockerfile`); `render.yaml` describes a
-free Render web service; the database is Neon's free PostgreSQL. Follow
-[docs/deployment.md](docs/deployment.md) — it contains the verified free-tier limits, the exact
-dashboard steps and the post-deployment checks. Configuration is environment-only
-(see [.env.example](.env.example)).
+One container (`Dockerfile`) serves both the React build and the API. `render.yaml` describes a
+free Render web service, and the database is a free Neon PostgreSQL. The steps are in
+[docs/deployment.md](docs/deployment.md).
 
 ## Documentation
 
-| Document | Contents |
+| Document | What it covers |
 |---|---|
-| [docs/roadmap.md](docs/roadmap.md) | **Build-from-scratch roadmap** for developers and AI agents: phases, tasks, acceptance checks, pitfalls |
-| [docs/architecture.md](docs/architecture.md) | modules, request flows, trade-offs |
-| [docs/database-design.md](docs/database-design.md) | schema, constraints, indexes, time zones, procedures |
-| [docs/api-documentation.md](docs/api-documentation.md) | every endpoint, roles, status codes, examples |
-| [docs/queue-algorithms.md](docs/queue-algorithms.md) | tokens, ordering, positions, wait estimates |
-| [docs/concurrency-and-transactions.md](docs/concurrency-and-transactions.md) | locking, races, invariants, concurrency tests |
-| [docs/realtime-design.md](docs/realtime-design.md) | SSE lifecycle, security, reconnection, limits |
-| [docs/security.md](docs/security.md) | authentication, CSRF, permission matrix, tenant isolation |
-| [docs/deployment.md](docs/deployment.md) | Render + Neon setup, migrations, verification |
-| [docs/testing.md](docs/testing.md) | executed suites, results, bugs found, gaps |
-| [docs/scalability-and-tradeoffs.md](docs/scalability-and-tradeoffs.md) | bottlenecks, scaling path, failure scenarios |
-| [docs/viva-preparation.md](docs/viva-preparation.md) | likely questions with answers, demo script |
-| [docs/adr/](docs/adr/) | architecture decision records 0001–0006 |
-| [docs/diagrams/](docs/diagrams/README.md) | Mermaid sources: architecture, ER, sequences, deployment, state machine |
-| [AGENTS.md](AGENTS.md) | rules and commands for coding agents |
+| [User guide](docs/user-guide.md) | running it, demo accounts, each role, demo script |
+| [Study guide](docs/study-guide.md) | the whole project explained for the viva, with likely questions |
+| [Diagrams](docs/diagrams/README.md) | architecture, ER, use case, DFD, class, sequence, state and activity diagrams (PNGs in `docs/diagrams/png`) |
+| [Architecture](docs/architecture.md) | modules, request flows, trade-offs |
+| [Database design](docs/database-design.md) | tables, constraints, indexes, time zones |
+| [API](docs/api-documentation.md) | every endpoint, its roles and status codes (also at `/swagger-ui.html`) |
+| [Queue algorithms](docs/queue-algorithms.md) | tokens, ordering, positions, wait estimates |
+| [Concurrency](docs/concurrency-and-transactions.md) | locking, race conditions, invariants, concurrency tests |
+| [Real time](docs/realtime-design.md) | Server-Sent Events: lifecycle, security, reconnection |
+| [Security](docs/security.md) | sessions, CSRF, roles, tenant isolation |
+| [Testing](docs/testing.md) | test suites, results, bugs found |
+| [Deployment](docs/deployment.md) | Render and Neon setup and checks |
+| [Scalability](docs/scalability-and-tradeoffs.md) | limits, and how it would scale |
+| [Decisions](docs/adr/) | six architecture decision records |
+| [Roadmap](docs/roadmap.md) | build-from-scratch plan: phases, tasks, checks, pitfalls |
 
 ## Project layout
 
 ```
-backend/    Spring Boot application (modules: auth, organization, membership, queue, ticket,
-            appointment, notification, realtime, common, seed), Flyway migrations, tests
-frontend/   React application, Playwright tests
-scripts/    local PostgreSQL, smoke test, Docker init SQL
-docs/       design documentation, ADRs, diagrams
+backend/    Spring Boot application: auth, organization, membership, queue, appointment,
+            ticket, notification, realtime, common, seed; Flyway migrations; tests
+frontend/   React application; Playwright tests in e2e/
+scripts/    run-local.sh, local-postgres.sh, smoke-test.sh, render-diagrams.mjs
+docs/       guides, design documents, decision records, diagrams
 ```

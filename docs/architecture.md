@@ -56,8 +56,8 @@ Source: [`diagrams/01-system-architecture.mmd`](diagrams/01-system-architecture.
 | Correctness under concurrency (tokens, slot capacity, one ticket at the counter) | PostgreSQL is the single source of truth; every queue write runs in a transaction that locks the queue row; database constraints back up every invariant. |
 | Multi-tenant access control | Roles live in `organization_memberships`; every protected operation resolves the organization from the resource and checks the caller's role there. |
 | Real-time updates without page refresh | Server-Sent Events, published only after commit, carrying only ids. |
-| 1–2 week build by one student | No microservices, no broker, no cache layer; plain Spring MVC + JPA. |
-| Zero-cost hosting (Render free: 0.1 CPU, 512 MB, sleeps when idle; Neon free) | Single container, single origin, small connection pool, liveness probe that never touches the database, JVM tuned for 512 MB, CDS for faster cold starts. |
+| Built by one student | No microservices, no broker, no cache layer; plain Spring MVC + JPA. |
+| Zero-cost hosting (Render free: 0.1 CPU, 512 MB, sleeps when idle; Neon free) | Single container, single origin, small connection pool, liveness probe that never touches the database, JVM tuned for 512 MB. |
 
 ## 2. Runtime components
 

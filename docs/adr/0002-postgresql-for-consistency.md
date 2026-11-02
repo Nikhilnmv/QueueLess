@@ -26,7 +26,7 @@ Store all state (including HTTP sessions) in PostgreSQL, hosted on Neon. Use:
 - Invariants hold even if application code has a bug (proved by tests that insert invalid rows
   with raw SQL).
 - Integration tests must run on real PostgreSQL (H2 lacks these semantics); a local cluster script
-  and Docker Compose are provided.
+  (`scripts/local-postgres.sh`) is provided.
 - Positions are derived by queries rather than stored, so they cannot drift.
 - Neon's free tier sleeps after 5 minutes idle; the app is configured not to keep it awake.
 

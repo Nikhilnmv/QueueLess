@@ -4,8 +4,7 @@ QueueLess is a Spring Boot 3.5 (Java 21) + React 19 (TypeScript, Vite) queue and
 system on PostgreSQL. Read [docs/roadmap.md](docs/roadmap.md) before changing anything: it lists
 the phases, invariants, conventions and the pitfalls already hit in this codebase.
 
-> **Unfinished work:** read [NEXT_STEPS.md](NEXT_STEPS.md) first. The UI redesign in progress
-> is on the `ui-redesign` branch.
+> **Unfinished work:** read [NEXT_STEPS.md](NEXT_STEPS.md) first (merge into `main`, deploy).
 
 ## Commands
 
@@ -53,3 +52,6 @@ QUEUELESS_DEMO_PASSWORD='Password123!' scripts/smoke-test.sh http://localhost:80
 | SSE | `docs/realtime-design.md`, `realtime/` |
 | Roles and permissions | `docs/security.md`, `membership/domain/Permission.java` |
 | Deployment | `docs/deployment.md`, `Dockerfile`, `render.yaml` |
+| Running it, demo accounts, demo script | `docs/user-guide.md`, `scripts/run-local.sh` |
+| The project explained for the viva | `docs/study-guide.md` |
+| Diagrams (sources and PNGs) | `docs/diagrams/`, `scripts/render-diagrams.mjs` |

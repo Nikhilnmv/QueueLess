@@ -7,7 +7,7 @@ implementation of every step; the design documents in `docs/` explain the reason
 
 **Status of this repository (2 Nov 2026):** phases 0–6 and 8 complete and verified; phase 7
 (deployment) prepared and verified locally with the production jar, waiting for the account steps
-in [deployment.md](deployment.md#step-by-step-checklist-manual-steps).
+in [deployment.md](deployment.md#steps).
 
 ---
 
@@ -70,7 +70,7 @@ microservices, Kubernetes.
 
 | Area | Choice | Version used | Why |
 |---|---|---|---|
-| Language/runtime | Java | 21 (Temurin/Oracle) | LTS; virtual-thread era; CDS |
+| Language/runtime | Java | 21 (Temurin/Oracle) | LTS |
 | Framework | Spring Boot | 3.5.16 (Spring 6.2, Security 6.5, Hibernate 6.6) | directive; latest 3.5.x patch |
 | Build | Maven + wrapper | 3.9.16 | reproducible builds (`./mvnw`) |
 | Database | PostgreSQL | 17 locally; Neon in production | locks, partial indexes, generated columns |
@@ -94,13 +94,13 @@ support TypeScript 7.
 QueueLess/
 ├── AGENTS.md                  short instructions for coding agents (points here)
 ├── README.md                  overview, quick start, demo accounts
-├── Dockerfile                 multi-stage: Node build -> Maven package -> JRE + CDS
-├── .dockerignore  .gitignore  .env.example  Makefile  render.yaml  docker-compose.yml
-├── .github/workflows/ci.yml   backend tests (PostgreSQL), frontend build, E2E, docker build
+├── Dockerfile                 three stages: Node build -> Maven package -> Java runtime
+├── .dockerignore  .gitignore  .env.example  render.yaml
 ├── scripts/
+│   ├── run-local.sh           start the database, build once, run the app with demo data
 │   ├── local-postgres.sh      project-local PostgreSQL on :5433 (no Docker)
 │   ├── smoke-test.sh          36 end-to-end checks against any URL, plus --after-restart
-│   └── docker-init/01-test-database.sql
+│   └── render-diagrams.mjs    render docs/diagrams/*.mmd to PNG and refresh their README
 ├── backend/
 │   ├── pom.xml  mvnw  .mvn/wrapper/
 │   └── src/
@@ -130,9 +130,10 @@ QueueLess/
 └── docs/
     ├── roadmap.md (this file)  architecture.md  database-design.md  api-documentation.md
     ├── queue-algorithms.md  concurrency-and-transactions.md  realtime-design.md  security.md
-    ├── deployment.md  testing.md  scalability-and-tradeoffs.md  viva-preparation.md
+    ├── deployment.md  testing.md  scalability-and-tradeoffs.md
+    ├── user-guide.md  study-guide.md
     ├── adr/0001..0006-*.md
-    └── diagrams/*.mmd + README.md
+    └── diagrams/*.mmd, png/*.png, README.md
 ```
 
 ---
@@ -213,7 +214,6 @@ java -version; node -v; psql --version
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # macOS; on Linux point JAVA_HOME at JDK 21
 
 scripts/local-postgres.sh start      # project-local cluster on localhost:5433 (dbs queueless, queueless_test)
-# or with Docker: docker compose up -d db
 ```
 
 ⚠ macOS: `pg_ctl` fails with "postmaster became multithreaded during startup" unless
@@ -231,7 +231,6 @@ scripts/local-postgres.sh start      # project-local cluster on localhost:5433 (
 - [ ] `scripts/local-postgres.sh` (initdb with SCRAM auth, start on :5433 with
       `max_connections=150`, create role `queueless`/`queueless`, databases `queueless` and
       `queueless_test`; subcommands `start|stop|status|reset-dev|reset-test|psql`).
-- [ ] `docker-compose.yml` (postgres:17-alpine, 5433:5432, init script creating `queueless_test`).
 - [ ] `.env.example` with placeholders only.
 
 **AC:** `scripts/local-postgres.sh start && pg_isready -h localhost -p 5433` → accepting connections.
@@ -524,7 +523,7 @@ bound `Duration` through `TaskScheduler`.
 
 - `npm run build` → TypeScript passes, Vite builds `dist/` (~460 KB JS).
 - `./mvnw -DskipTests package` → `queueless.jar` contains `BOOT-INF/classes/static/index.html`.
-- Browser walkthrough of the demo script in [viva-preparation.md](viva-preparation.md#demo-script-5-minutes) works.
+- Browser walkthrough of the demo script in [user-guide.md](user-guide.md#8-a-demo-for-the-presentation-about-8-minutes) works.
 
 ### Pitfalls
 
@@ -583,33 +582,32 @@ consistent rows.
 
 ## Phase 7 — Production package and deployment
 
-**Goal:** a reproducible image deployed on free infrastructure and verified by URL.
+**Goal:** one container deployed on free infrastructure and verified by URL.
 
 ### Tasks
 
-- [ ] `Dockerfile`: `node:24-alpine` (npm ci, build) → `maven:3.9-eclipse-temurin-21`
-      (`dependency:go-offline`, copy `frontend/dist`, `package -DskipTests`) →
-      `eclipse-temurin:21-jre-alpine` (non-root user; `TZ=UTC`; `SPRING_PROFILES_ACTIVE=prod`;
-      `JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=40 -Xss512k -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m
-      -XX:ReservedCodeCacheSize=64m -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"`;
-      `java -Djarmode=tools -jar ... extract`; CDS training run
-      `-XX:ArchiveClassesAtExit=/app/app.jsa -Dspring.context.exit=onRefresh` with Flyway off,
-      `ddl-auto=none`, `hibernate.boot.allow_jdbc_metadata_access=false`, explicit dialect and a
-      dummy URL; entrypoint `java -XX:SharedArchiveFile=/app/app.jsa -jar /app/queueless.jar`).
-- [ ] `.dockerignore`, `render.yaml` (free Docker web service, Singapore, liveness health check,
-      `sync: false` secrets), `.github/workflows/ci.yml` (backend on postgres:17 service, frontend,
-      E2E, docker build).
-- [ ] Verify locally: prod profile + Neon-style URL + tight heap → smoke test 36/36; memory
-      (~320 MB RSS); CDS startup gain (~3.1 s → ~1.8 s locally).
-- [ ] Manual account steps (GitHub push, Neon direct JDBC string, Render Blueprint, secrets) —
-      [deployment.md checklist](deployment.md#step-by-step-checklist-manual-steps).
-- [ ] Hosted verification: smoke test against the URL, browser live update, Neon SQL Editor shows
-      the smoke customer, restart + `--after-restart`, HTTPS redirect; fill the deployment record.
+- [ ] `Dockerfile` in three stages: `node:24-alpine` (`npm ci`, `npm run build`) →
+      `maven:3.9-eclipse-temurin-21` (copy `frontend/dist`, `mvn -DskipTests package`) →
+      `eclipse-temurin:21-jre-alpine` with `SPRING_PROFILES_ACTIVE=prod` and
+      `JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=40 -XX:+UseSerialGC -XX:TieredStopAtLevel=1"` so it
+      fits 512 MB; `CMD java -jar /app/queueless.jar`.
+- [ ] `.dockerignore` (Git data, local database, build output, `node_modules`, secrets).
+- [ ] `render.yaml`: one free Docker web service in Singapore, health check
+      `/actuator/health/liveness`, `SPRING_PROFILES_ACTIVE=prod`, `QUEUELESS_SEED_DEMO_DATA=true`,
+      and `DATABASE_URL` and `QUEUELESS_SEED_PASSWORD` as `sync: false` secrets.
+- [ ] `scripts/run-local.sh`: start the local database, build the frontend and the jar when needed
+      (`--rebuild` forces it), run the jar with the dev profile.
+- [ ] Verify locally: prod profile + a URL with embedded credentials + the Dockerfile's JVM flags →
+      smoke test 36/36; memory stays near 320 MB.
+- [ ] Account steps (Neon direct connection string, Render Blueprint, secrets):
+      [deployment.md](deployment.md#steps).
+- [ ] Hosted verification: smoke test against the URL, browser live update, restart +
+      `--after-restart`; fill the deployment record.
 
 ### AC
 
-- CI green on GitHub (including the Docker build).
-- Hosted smoke test 36/36 and after-restart 4/4; record URL and results in deployment.md.
+- `scripts/run-local.sh` starts the app from a fresh clone.
+- Hosted smoke test 36/36 and after-restart 4/4; URL and results recorded in deployment.md.
 
 ### Pitfalls
 
@@ -626,17 +624,21 @@ restart the app while Neon wakes.
 
 - [ ] `docs/` set: architecture, database-design, api-documentation, queue-algorithms,
       concurrency-and-transactions, realtime-design, security, deployment, testing,
-      scalability-and-tradeoffs, viva-preparation, this roadmap.
+      scalability-and-tradeoffs, user-guide, study-guide, this roadmap.
 - [ ] ADRs 0001–0006 (monolith, PostgreSQL, locking, SSE, single-instance registry, sessions).
-- [ ] Diagrams in `docs/diagrams/*.mmd` (architecture, ER, booking, token generation, call-next,
-      live update, deployment, ticket state machine) and `docs/diagrams/README.md` embedding them.
-- [ ] Validate every Mermaid block by rendering it (Mermaid in headless Chromium).
-- [ ] README (quick start, demo accounts, commands) and AGENTS.md.
+- [ ] Diagrams in `docs/diagrams/*.mmd`: architecture, ER, booking, token generation, call-next,
+      live update, deployment, ticket state machine, use case, DFD level 0 and 1, domain and
+      service class diagrams, and the visit activity diagram.
+- [ ] `scripts/render-diagrams.mjs`: render each diagram to `docs/diagrams/png/` and copy each
+      source into `docs/diagrams/README.md` (Mermaid in headless Chromium).
+- [ ] README (what it is, how to run, demo accounts, documentation index) and AGENTS.md.
 
-**AC:** all diagrams render (8/8); every number quoted in docs comes from an executed run.
+**AC:** all 14 diagrams render; every number quoted in docs comes from an executed run.
 
 ⚠ Mermaid sequence diagrams treat `;` as a statement separator — avoid semicolons in messages and
 notes.
+⚠ Mermaid sizes its SVG to the container (`width: 100%`); set the natural size before taking a PNG,
+or every image comes out 300 px wide.
 
 ---
 
@@ -672,8 +674,8 @@ notes.
 | SSE connects then 500 | exception in subscribe | check logs; registry/subscription changes |
 | Browser stuck "Reconnecting" | session expired or server down | log in again; check health |
 | Integration tests refuse to start: "Refusing to clean database" | test DB name lacks `_test` | point `QUEUELESS_TEST_DATABASE_URL` at a `*_test` database |
-| Tests fail only on CI | different time zone/locale | tests already run in Asia/Kolkata; check clock use |
-| Render deploy times out at startup | 0.1 CPU is slow | CDS archive is in the image; check logs for DB connectivity |
+| Tests fail only on another machine | different time zone or locale | tests already run in Asia/Kolkata; check clock use |
+| Render deploy times out at startup | 0.1 CPU is slow | the first start takes minutes; check the logs for database connectivity |
 
 ---
 
