@@ -14,7 +14,10 @@ function QueueRow({ queue }: { queue: Queue }) {
       </td>
       <td className={td}><QueueStatusBadge status={queue.status} /></td>
       <td className={`${td} tabular`}>{live.data ? live.data.waitingCount : '…'}</td>
-      <td className={`${td} font-mono`}>{live.data ? (live.data.nowServing?.displayToken ?? 'nobody') : '…'}</td>
+      <td className={td}>
+        {!live.data ? '…' : live.data.nowServing
+          ? <span className="font-mono">{live.data.nowServing.displayToken}</span> : <span className="text-stone-500">nobody</span>}
+      </td>
     </tr>
   );
 }

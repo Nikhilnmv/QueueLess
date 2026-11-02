@@ -117,7 +117,7 @@ function MembersTab({ orgId }: { orgId: string }) {
                 <td className={cx(td, 'text-stone-600')}>{m.email}</td>
                 <td className={td}>
                   <label className="sr-only" htmlFor={`role-${m.membershipId}`}>Role of {m.fullName}</label>
-                  <Select id={`role-${m.membershipId}`} value={m.role} className="w-32 py-1!" disabled={actions.changeRole.isPending}
+                  <Select id={`role-${m.membershipId}`} value={m.role} className="w-32! py-1!" disabled={actions.changeRole.isPending}
                           onChange={(e) => {
                             actions.add.reset(); actions.remove.reset();
                             actions.changeRole.mutate({ membershipId: m.membershipId, role: e.target.value as MembershipRole });

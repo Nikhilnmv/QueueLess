@@ -127,46 +127,49 @@ export function StaffQueuePage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="min-w-0 space-y-6">
-          <Panel title={`Waiting (${b.waiting.length})`} actions={<span className="text-xs text-stone-500">{b.orderingPolicy}</span>}>
+          <Panel title={`Waiting (${b.waiting.length})`}>
             {b.waiting.length === 0 ? (
               <Empty>Nobody is waiting. Walk-ins and checked-in appointments appear here as they arrive.</Empty>
             ) : (
-              <div className="-m-4 overflow-x-auto">
-                <table className={table}>
-                  <thead>
-                    <tr>
-                      <th className={th}>#</th><th className={th}>Token</th><th className={th}>Name</th><th className={th}>Joined by</th>
-                      <th className={th}>Priority</th><th className={th}>In line since</th><th className={th}>Wait</th>
-                      <th className={th}><span className="sr-only">Actions</span></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {b.waiting.map((t) => (
-                      <tr key={t.ticketId} className={cx(t.priority === 'HIGH' && 'bg-amber-50/60')}>
-                        <td className={cx(td, 'tabular text-stone-500')}>{t.position}</td>
-                        <td className={cx(td, 'font-mono font-medium')}>{t.displayToken}</td>
-                        <td className={td}>{t.holderName}</td>
-                        <td className={cx(td, 'text-stone-600')}>{sourceLabel[t.source]}</td>
-                        <td className={td}>
-                          <label className="sr-only" htmlFor={`priority-${t.ticketId}`}>Priority of {t.displayToken}</label>
-                          <Select id={`priority-${t.ticketId}`} value={t.priority} disabled={busy} className="w-28 py-1!"
-                                  onChange={(e) => {
-                                    resetErrors();
-                                    actions.priority.mutate({ ticketId: t.ticketId, priority: e.target.value as TicketPriority });
-                                  }}>
-                            {(['HIGH', 'NORMAL', 'LOW'] as const).map((p) => <option key={p} value={p}>{priorityLabel[p]}</option>)}
-                          </Select>
-                        </td>
-                        <td className={cx(td, 'tabular text-stone-600')}>{formatTime(t.checkedInAt, b.timezone)}</td>
-                        <td className={cx(td, 'tabular whitespace-nowrap text-stone-600')}>{minutesLabel(t.estimatedWaitMinutes)}</td>
-                        <td className={cx(td, 'text-right')}>
-                          <button type="button" disabled={busy} onClick={() => setCancelling(t)}
-                                  className="text-sm text-red-700 hover:underline disabled:text-stone-400">Cancel</button>
-                        </td>
+              <div className="-m-4">
+                <div className="overflow-x-auto">
+                  <table className={table}>
+                    <thead>
+                      <tr>
+                        <th className={th}>#</th><th className={th}>Token</th><th className={th}>Name</th><th className={th}>Joined by</th>
+                        <th className={th}>Priority</th><th className={th}>Since</th><th className={th}>Wait</th>
+                        <th className={th}><span className="sr-only">Actions</span></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {b.waiting.map((t) => (
+                        <tr key={t.ticketId} className={cx(t.priority === 'HIGH' && 'bg-amber-50/60')}>
+                          <td className={cx(td, 'tabular text-stone-500')}>{t.position}</td>
+                          <td className={cx(td, 'whitespace-nowrap font-mono font-medium')}>{t.displayToken}</td>
+                          <td className={td}>{t.holderName}</td>
+                          <td className={cx(td, 'whitespace-nowrap text-stone-600')}>{sourceLabel[t.source]}</td>
+                          <td className={td}>
+                            <label className="sr-only" htmlFor={`priority-${t.ticketId}`}>Priority of {t.displayToken}</label>
+                            <Select id={`priority-${t.ticketId}`} value={t.priority} disabled={busy} className="w-28! py-1!"
+                                    onChange={(e) => {
+                                      resetErrors();
+                                      actions.priority.mutate({ ticketId: t.ticketId, priority: e.target.value as TicketPriority });
+                                    }}>
+                              {(['HIGH', 'NORMAL', 'LOW'] as const).map((p) => <option key={p} value={p}>{priorityLabel[p]}</option>)}
+                            </Select>
+                          </td>
+                          <td className={cx(td, 'tabular whitespace-nowrap text-stone-600')}>{formatTime(t.checkedInAt, b.timezone)}</td>
+                          <td className={cx(td, 'tabular whitespace-nowrap text-stone-600')}>{minutesLabel(t.estimatedWaitMinutes)}</td>
+                          <td className={cx(td, 'text-right')}>
+                            <button type="button" disabled={busy} onClick={() => setCancelling(t)}
+                                    className="text-sm text-red-700 hover:underline disabled:text-stone-400">Cancel</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="border-t border-stone-200 px-4 py-2 text-xs text-stone-500">{b.orderingPolicy}</p>
               </div>
             )}
           </Panel>
@@ -187,7 +190,7 @@ export function StaffQueuePage() {
                     {b.expected.map((t) => (
                       <tr key={t.ticketId}>
                         <td className={cx(td, 'tabular')}>{formatTime(t.scheduledAt, b.timezone)}</td>
-                        <td className={cx(td, 'font-mono font-medium')}>{t.displayToken}</td>
+                        <td className={cx(td, 'whitespace-nowrap font-mono font-medium')}>{t.displayToken}</td>
                         <td className={td}>{t.holderName}</td>
                         <td className={td}>{t.priority === 'NORMAL' ? <span className="text-stone-500">Normal</span> : <PriorityBadge priority={t.priority} />}</td>
                         <td className={cx(td, 'whitespace-nowrap text-right')}>
@@ -228,13 +231,17 @@ export function StaffQueuePage() {
           <Panel title="Today">
             <Details rows={[
               ['Waiting', b.stats.waiting],
-              ['Expected', `${b.stats.expected} booked, not checked in`],
+              ['Booked, not here', b.stats.expected],
               ['Completed', b.stats.completed],
               ['No-shows', b.stats.noShow],
               ['Cancelled', b.stats.cancelled],
-              ['Average service', `${b.stats.averageServiceMinutes} min (${b.stats.estimateBasis === 'HISTORY'
-                ? `last ${b.stats.estimateSamples} visits` : 'typical time, little history yet'})`],
+              ['Average service', `${b.stats.averageServiceMinutes} min`],
             ]} />
+            <p className="mt-3 text-xs text-stone-500">
+              {b.stats.estimateBasis === 'HISTORY'
+                ? `The average comes from the last ${b.stats.estimateSamples} completed visits.`
+                : 'Not enough completed visits yet, so the typical service time is used.'}
+            </p>
           </Panel>
         </div>
       </div>

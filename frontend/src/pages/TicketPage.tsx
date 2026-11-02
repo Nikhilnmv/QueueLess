@@ -76,7 +76,7 @@ export function TicketPage() {
                 {' '}Estimated wait {minutesLabel(live.estimatedWaitMinutes).replace('~', 'about ')}.
               </p>
               <p className="mt-3 text-sm text-stone-500">
-                Now serving <span className="font-mono">{live.nowServing ?? 'nobody'}</span> · {live.waitingCount} waiting in total
+                Now serving {live.nowServing ? <span className="font-mono">{live.nowServing}</span> : 'nobody'} · {live.waitingCount} waiting in total
                 {live.queueStatus === 'PAUSED' && ' · the queue is paused, so the estimate is on hold'}
               </p>
             </div>

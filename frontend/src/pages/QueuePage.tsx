@@ -47,7 +47,8 @@ export function QueuePage() {
           {live.isError && <ErrorNotice error={live.error} onRetry={() => live.refetch()} />}
           {live.data && (
             <Details rows={[
-              ['Now serving', <span className="font-mono">{live.data.nowServing?.displayToken ?? 'Nobody at the counter'}</span>],
+              ['Now serving', live.data.nowServing
+                ? <span className="font-mono">{live.data.nowServing.displayToken}</span> : 'Nobody at the counter'],
               ['Waiting', `${live.data.waitingCount} ${live.data.waitingCount === 1 ? 'person' : 'people'}`],
               ['Wait if you join now', minutesLabel(live.data.estimatedWaitMinutesForNewTicket)],
               ['Average service time', `${live.data.averageServiceMinutes} min ${live.data.estimateBasis === 'HISTORY'
