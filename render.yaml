@@ -1,35 +1,22 @@
-# Render Blueprint for QueueLess (https://render.com/docs/blueprint-spec).
-# The database is hosted on Neon, not Render (Render's free PostgreSQL expires after 30 days).
-# Values marked sync: false are entered privately in the Render dashboard when the Blueprint is
-# created; they are never stored in this repository.
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository.
+# Render builds the Dockerfile and asks for the values marked "sync: false".
+# The database lives on Neon (free), not on Render.
 services:
   - type: web
     name: queueless
     runtime: docker
     plan: free
-    # Singapore is the closest Render region to India; create the Neon project in
-    # AWS Asia Pacific (Singapore) as well to keep database round trips short.
     region: singapore
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    # Liveness does not touch the database, so health checks never keep Neon awake or restart
-    # the app while Neon is resuming from scale-to-zero.
     healthCheckPath: /actuator/health/liveness
-    autoDeployTrigger: commit
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      # Neon *direct* (non "-pooler") connection, e.g.
-      # jdbc:postgresql://ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
-      # (a postgresql://user:password@host/db?sslmode=require URL is also accepted).
+      # Paste the Java connection string from Neon (Connect -> Java, pooling off).
       - key: DATABASE_URL
         sync: false
-      - key: DATABASE_USERNAME
-        sync: false
-      - key: DATABASE_PASSWORD
-        sync: false
-      # Demo organizations and accounts for evaluation; set to "false" for real use.
+      # Creates the two demo organizations and demo logins.
       - key: QUEUELESS_SEED_DEMO_DATA
         value: "true"
+      # Password for all demo logins; choose your own.
       - key: QUEUELESS_SEED_PASSWORD
         sync: false

@@ -1,7 +1,7 @@
 # Integration tests run against a real PostgreSQL database (locking behaviour,
 # partial unique indexes and generated columns are PostgreSQL features).
-# Defaults match scripts/local-postgres.sh and docker-compose.yml; CI overrides
-# them with QUEUELESS_TEST_DATABASE_* environment variables.
+# Defaults match scripts/local-postgres.sh; another database can be used through the
+# QUEUELESS_TEST_DATABASE_* environment variables.
 spring:
   datasource:
     url: ${QUEUELESS_TEST_DATABASE_URL:jdbc:postgresql://localhost:5433/queueless_test}

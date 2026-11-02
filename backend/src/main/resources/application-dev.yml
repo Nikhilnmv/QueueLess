@@ -1,5 +1,5 @@
-# Local development. Start PostgreSQL with `scripts/local-postgres.sh start`
-# (or `docker compose up -d db`), then run with `-Dspring-boot.run.profiles=dev`.
+# Local development. Start PostgreSQL with `scripts/local-postgres.sh start`,
+# then run with `-Dspring-boot.run.profiles=dev` (or simply `scripts/run-local.sh`).
 spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/queueless}

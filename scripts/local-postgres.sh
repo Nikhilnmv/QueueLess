@@ -6,7 +6,6 @@
 #
 # Requires PostgreSQL server binaries (initdb, pg_ctl, psql) on PATH, e.g.
 # `brew install postgresql@17` on macOS or `apt install postgresql` on Linux.
-# Docker users can use `docker compose up -d db` instead (same port and credentials).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
