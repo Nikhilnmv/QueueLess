@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { CalendarCheck, CalendarX, LogIn } from 'lucide-react';
 import { errorMessage } from '../api/client';
 import { useAppointment, useCancelAppointment, useCheckIn } from '../api/queries';
 import { AppointmentStatusBadge, LiveIndicator, TicketStatusBadge } from '../components/StatusBadges';
-import { Alert, Button, Card, ConfirmDialog, ErrorState, Spinner } from '../components/ui';
+import { Button, ConfirmDialog, Details, ErrorNotice, Loading, Notice, PageTitle, Panel } from '../components/ui';
 import { formatDateTime, formatTime } from '../lib/format';
 import { useQueueEvents } from '../realtime/hooks';
 
@@ -19,75 +18,65 @@ export function AppointmentPage() {
   const active = appointment.data && (appointment.data.status === 'BOOKED' || appointment.data.status === 'CHECKED_IN');
   const stream = useQueueEvents(appointment.data?.queueId, !!active);
 
-  if (appointment.isPending) return <Spinner label="Loading appointment" />;
-  if (appointment.isError) return <ErrorState error={appointment.error} onRetry={() => appointment.refetch()} />;
+  if (appointment.isPending) return <Loading label="Loading appointment" />;
+  if (appointment.isError) return <ErrorNotice error={appointment.error} onRetry={() => appointment.refetch()} />;
   const a = appointment.data;
   const justBooked = params.get('booked') === '1' && a.status === 'BOOKED';
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link to={`/queues/${a.queueId}`} className="text-sm font-medium text-indigo-600 hover:underline">{a.organizationName} · {a.queueName}</Link>
-          <h1 className="text-2xl font-semibold text-slate-900">Appointment {a.bookingReference}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <AppointmentStatusBadge status={a.status} />
-          {active && <LiveIndicator status={stream} />}
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-5">
+      <PageTitle
+        back={<Link to="/dashboard" className="text-pine-700 hover:underline">Back to my visits</Link>}
+        title={`Appointment ${a.bookingReference}`}
+        description={`${a.queueName}, ${a.organizationName}`}
+        actions={<><AppointmentStatusBadge status={a.status} />{active && <LiveIndicator status={stream} />}</>}
+      />
 
       {justBooked && (
-        <Alert tone="success" title="Booking confirmed">
-          Your token {a.displayToken} is reserved. A confirmation is saved in your notifications.
-        </Alert>
+        <Notice tone="success" title="Booking confirmed">
+          Your token {a.displayToken} is reserved. A copy of the confirmation is in your notifications.
+        </Notice>
       )}
 
-      <Card>
-        <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          <div><dt className="text-slate-500">When</dt><dd className="text-base font-medium text-slate-900">{formatDateTime(a.scheduledAt, a.timezone)}</dd></div>
-          <div><dt className="text-slate-500">Token</dt><dd className="font-mono text-base font-semibold text-indigo-600">{a.displayToken ?? '—'}</dd></div>
-          <div><dt className="text-slate-500">Check-in opens</dt><dd>{formatDateTime(a.checkInOpensAt, a.timezone)}</dd></div>
-          <div><dt className="text-slate-500">Ticket</dt><dd>{a.ticketStatus ? <TicketStatusBadge status={a.ticketStatus} /> : '—'}</dd></div>
-          {a.cancelledAt && <div><dt className="text-slate-500">Cancelled</dt><dd>{formatTime(a.cancelledAt, a.timezone)}</dd></div>}
-          <div><dt className="text-slate-500">Time zone</dt><dd>{a.timezone}</dd></div>
-        </dl>
-      </Card>
+      <Panel title="Booking">
+        <Details rows={[
+          ['Date and time', <span className="font-medium">{formatDateTime(a.scheduledAt, a.timezone)}</span>],
+          ['Token', <span className="font-mono font-medium text-pine-700">{a.displayToken ?? 'none'}</span>],
+          ['Check-in opens', formatDateTime(a.checkInOpensAt, a.timezone)],
+          ['Ticket', a.ticketStatus ? <TicketStatusBadge status={a.ticketStatus} /> : 'none'],
+          ...(a.cancelledAt ? [['Cancelled at', formatTime(a.cancelledAt, a.timezone)] as [string, string]] : []),
+          ['Time zone', a.timezone],
+        ]} />
+      </Panel>
 
       {a.status === 'BOOKED' && !a.canCheckIn && (
-        <p className="text-sm text-slate-600">
-          You can check in from {formatDateTime(a.checkInOpensAt, a.timezone)} when you arrive. Your place in the line is
-          decided by your check-in time.
+        <p className="text-sm text-stone-600">
+          Check in when you arrive, from {formatDateTime(a.checkInOpensAt, a.timezone)}. Your place in line counts from check-in.
         </p>
       )}
 
-      {checkIn.isError && <Alert tone="error">{errorMessage(checkIn.error)}</Alert>}
-      {cancel.isError && <Alert tone="error">{errorMessage(cancel.error)}</Alert>}
+      {checkIn.isError && <Notice tone="error">{errorMessage(checkIn.error)}</Notice>}
+      {cancel.isError && <Notice tone="error">{errorMessage(cancel.error)}</Notice>}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {a.canCheckIn && (
-          <Button size="lg" variant="success" loading={checkIn.isPending} icon={<LogIn className="size-5" aria-hidden />}
+          <Button size="lg" loading={checkIn.isPending}
                   onClick={() => checkIn.mutate({ id: a.id, queueId: a.queueId }, { onSuccess: (ticket) => navigate(`/tickets/${ticket.id}`) })}>
-            I’m here — check in
+            I have arrived, check me in
           </Button>
         )}
         {a.status === 'CHECKED_IN' && a.ticketId && (
-          <Link to={`/tickets/${a.ticketId}`} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-            <CalendarCheck className="size-4" aria-hidden /> Follow my position
+          <Link to={`/tickets/${a.ticketId}`} className="rounded bg-pine-700 px-3.5 py-2 text-sm font-medium text-white hover:bg-pine-800">
+            See my place in line
           </Link>
         )}
-        {a.canCancel && (
-          <Button variant="secondary" icon={<CalendarX className="size-4" aria-hidden />} onClick={() => setConfirming(true)}>
-            Cancel appointment
-          </Button>
-        )}
-        <Link to="/dashboard" className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Back to my queue</Link>
+        {a.canCancel && <Button variant="danger" onClick={() => setConfirming(true)}>Cancel appointment</Button>}
       </div>
 
       <ConfirmDialog open={confirming} title="Cancel this appointment?" confirmLabel="Cancel appointment" loading={cancel.isPending}
                      onCancel={() => setConfirming(false)}
                      onConfirm={() => cancel.mutate({ id: a.id, queueId: a.queueId }, { onSettled: () => setConfirming(false) })}>
-        The slot on {formatDateTime(a.scheduledAt, a.timezone)} is released and token {a.displayToken} is cancelled.
+        The slot on {formatDateTime(a.scheduledAt, a.timezone)} becomes free and token {a.displayToken} is cancelled.
       </ConfirmDialog>
     </div>
   );

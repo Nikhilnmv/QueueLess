@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
-import { LogIn } from 'lucide-react';
 import { errorMessage } from '../api/client';
 import { useLogin, useMe } from '../api/queries';
-import { Alert, Button, Card, Field, Input } from '../components/ui';
+import { Button, Field, Input, Notice } from '../components/ui';
 
 /** Only same-site relative paths are accepted as a post-login redirect (no open redirects). */
 export function safeNext(value: string | null): string {
@@ -11,10 +10,10 @@ export function safeNext(value: string | null): string {
 }
 
 const demoAccounts = [
-  ['Customer', 'asha@example.com'],
-  ['Clinic staff', 'staff@citycare.example'],
-  ['Clinic admin', 'admin@citycare.example'],
-  ['College staff', 'staff@northbridge.example'],
+  ['asha@example.com', 'Visitor'],
+  ['staff@citycare.example', 'Clinic staff'],
+  ['admin@citycare.example', 'Clinic admin'],
+  ['staff@northbridge.example', 'College staff'],
 ];
 
 export function LoginPage() {
@@ -34,41 +33,45 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold text-slate-900">Log in</h1>
-      <p className="mt-1 text-slate-600">Welcome back. New here? <Link to="/register" className="font-medium text-indigo-600 hover:underline">Create an account</Link>.</p>
-      <Card className="mt-6">
-        <form onSubmit={submit} className="space-y-4" noValidate>
-          {login.isError && <Alert tone="error">{errorMessage(login.error)}</Alert>}
-          <Field label="Email" htmlFor="email">
-            <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </Field>
-          <Field label="Password" htmlFor="password">
-            <Input id="password" type="password" autoComplete="current-password" required value={password}
-                   onChange={(e) => setPassword(e.target.value)} />
-          </Field>
-          <Button type="submit" className="w-full" loading={login.isPending} icon={<LogIn className="size-4" aria-hidden />}
-                  disabled={!email || !password}>
-            Log in
-          </Button>
-        </form>
-      </Card>
-      <details className="mt-6 rounded-lg bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
-        <summary className="cursor-pointer font-medium text-slate-700">Demo accounts</summary>
-        <ul className="mt-2 space-y-1">
-          {demoAccounts.map(([role, address]) => (
-            <li key={address}>
-              <button type="button" className="text-indigo-600 hover:underline" onClick={() => setEmail(address)}>{address}</button>
-              <span className="text-slate-500"> · {role}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-slate-500">
+    <div className="mx-auto max-w-sm">
+      <h1 className="text-2xl font-semibold text-stone-900">Log in</h1>
+      <p className="mt-1 text-sm text-stone-600">
+        No account yet? <Link to="/register" className="text-pine-700 underline underline-offset-2">Sign up</Link>
+      </p>
+      <form onSubmit={submit} className="mt-6 space-y-4 rounded-md border border-stone-200 bg-white p-5" noValidate>
+        {login.isError && <Notice tone="error">{errorMessage(login.error)}</Notice>}
+        <Field label="Email" htmlFor="email">
+          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+        <Field label="Password" htmlFor="password">
+          <Input id="password" type="password" autoComplete="current-password" required value={password}
+                 onChange={(e) => setPassword(e.target.value)} />
+        </Field>
+        <Button type="submit" className="w-full" loading={login.isPending} disabled={!email || !password}>Log in</Button>
+      </form>
+
+      <div className="mt-6 text-sm">
+        <p className="font-medium text-stone-700">Demo logins</p>
+        <table className="mt-2 w-full">
+          <tbody>
+            {demoAccounts.map(([address, role]) => (
+              <tr key={address} className="border-b border-stone-200 last:border-0">
+                <td className="py-1.5">
+                  <button type="button" className="text-pine-700 underline-offset-2 hover:underline" onClick={() => setEmail(address)}>
+                    {address}
+                  </button>
+                </td>
+                <td className="py-1.5 text-right text-stone-500">{role}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-stone-500">
           {import.meta.env.DEV
-            ? 'Local development password: Password123!'
-            : 'The demo password is set by the deployment (QUEUELESS_SEED_PASSWORD) and shared with evaluators separately.'}
+            ? 'Local password: Password123!'
+            : 'The demo password is shared with you separately.'}
         </p>
-      </details>
+      </div>
     </div>
   );
 }

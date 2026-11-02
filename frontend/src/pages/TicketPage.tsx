@@ -1,39 +1,35 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { BellRing, Hourglass, LogOut, PauseCircle } from 'lucide-react';
 import { errorMessage } from '../api/client';
 import { useCancelTicket, useTicket } from '../api/queries';
 import type { Ticket } from '../api/types';
 import { LiveIndicator, TicketStatusBadge } from '../components/StatusBadges';
-import { Alert, Button, Card, ConfirmDialog, ErrorState, Spinner, Stat } from '../components/ui';
-import { formatDateTime, formatLocalDate, formatTime, minutesLabel, sourceLabel } from '../lib/format';
+import { Button, ConfirmDialog, Details, ErrorNotice, Loading, Notice, PageTitle, Panel } from '../components/ui';
+import { formatDateTime, formatLocalDate, formatTime, minutesLabel, priorityLabel, sourceLabel } from '../lib/format';
 import { useQueueEvents } from '../realtime/hooks';
 
 function StatusMessage({ ticket }: { ticket: Ticket }) {
   if (ticket.expired) {
-    return <Alert tone="info" title="This ticket has expired">Its service day has passed. Join the queue again if you still need the service.</Alert>;
+    return <Notice title="This ticket has expired">Its day has passed. Take a new token if you still need the service.</Notice>;
   }
   switch (ticket.status) {
     case 'BOOKED':
-      return <Alert tone="info" title="Token reserved">Check in from your appointment when you arrive; you join the line at check-in.</Alert>;
+      return <Notice title="Token reserved">Check in from your appointment when you arrive. You join the line at check-in.</Notice>;
     case 'CALLED':
       return (
-        <div className="flex items-center gap-3 rounded-xl bg-emerald-600 p-5 text-white shadow-lg" role="alert">
-          <BellRing className="size-8 shrink-0 animate-pulse" aria-hidden />
-          <div>
-            <div className="text-xl font-semibold">It’s your turn!</div>
-            <div className="text-emerald-50">Please go to {ticket.queueName} now.</div>
-          </div>
+        <div className="rounded-md bg-pine-700 px-5 py-4 text-white" role="alert">
+          <p className="text-xl font-semibold">It’s your turn!</p>
+          <p className="text-pine-100">Please go to {ticket.queueName} now.</p>
         </div>
       );
     case 'SERVING':
-      return <Alert tone="success" title="You are being served">Thank you for your patience.</Alert>;
+      return <Notice tone="success" title="You are being served" />;
     case 'COMPLETED':
-      return <Alert tone="success" title="Service completed">Thanks for visiting {ticket.organizationName}.</Alert>;
+      return <Notice tone="success" title="Service completed">Thank you for visiting {ticket.organizationName}.</Notice>;
     case 'NO_SHOW':
-      return <Alert tone="warning" title="Marked as no-show">Your token was called but not answered. You can join the queue again.</Alert>;
+      return <Notice tone="warning" title="Marked as no-show">Your token was called but nobody answered. You can take a new token.</Notice>;
     case 'CANCELLED':
-      return <Alert tone="error" title="Ticket cancelled">This ticket is no longer in the queue.</Alert>;
+      return <Notice tone="error" title="Ticket cancelled">This ticket is no longer in the queue.</Notice>;
     default:
       return null;
   }
@@ -47,82 +43,84 @@ export function TicketPage() {
   const active = ticket.data && !ticket.data.expired && ['BOOKED', 'WAITING', 'CALLED', 'SERVING'].includes(ticket.data.status);
   const stream = useQueueEvents(ticket.data?.queueId, !!active);
 
-  if (ticket.isPending) return <Spinner label="Loading your ticket" />;
-  if (ticket.isError) return <ErrorState error={ticket.error} onRetry={() => ticket.refetch()} />;
+  if (ticket.isPending) return <Loading label="Loading your ticket" />;
+  if (ticket.isError) return <ErrorNotice error={ticket.error} onRetry={() => ticket.refetch()} />;
   const t = ticket.data;
   const live = t.live;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link to={`/queues/${t.queueId}`} className="text-sm font-medium text-indigo-600 hover:underline">{t.organizationName} · {t.queueName}</Link>
-          <h1 className="text-2xl font-semibold text-slate-900">Your ticket</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <TicketStatusBadge status={t.status} expired={t.expired} />
-          {active && <LiveIndicator status={stream} />}
-        </div>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <PageTitle
+        back={<Link to="/dashboard" className="text-pine-700 hover:underline">My visits</Link>}
+        title={`${t.queueName}, ${t.organizationName}`}
+        actions={<><TicketStatusBadge status={t.status} expired={t.expired} />{active && <LiveIndicator status={stream} />}</>}
+      />
 
       <StatusMessage ticket={t} />
 
-      <Card className="p-8 text-center">
-        <div className="text-sm font-medium uppercase tracking-widest text-slate-500">Token</div>
-        <div className="mt-1 font-mono text-6xl font-bold text-indigo-600" data-testid="token">{t.displayToken}</div>
-        <div className="mt-2 text-sm text-slate-500">{formatLocalDate(t.serviceDate)} · {sourceLabel[t.source]}</div>
-        {live?.queueStatus === 'PAUSED' && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-800 ring-1 ring-amber-200">
-            <PauseCircle className="size-4" aria-hidden /> Queue paused — your place is kept, the estimate is on hold
-          </div>
-        )}
-      </Card>
-
-      {live && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-live="polite">
-          <Stat label="Your position" value={t.status === 'WAITING' && live.position ? `#${live.position}` : t.status === 'BOOKED' ? 'Not in line yet' : '—'}
-                hint={t.status === 'WAITING' && live.peopleAhead !== null ? `${live.peopleAhead} ahead of you` : undefined} />
-          <Stat label="Estimated wait" value={t.status === 'WAITING' ? minutesLabel(live.estimatedWaitMinutes) : '—'}
-                hint={live.estimateBasis === 'HISTORY' ? 'From recent service times' : 'From the typical service time'} />
-          <Stat label="Now serving" value={live.nowServing ?? '—'} />
-          <Stat label="Waiting in total" value={live.waitingCount} />
+      <div className="grid gap-5 sm:grid-cols-[14rem_1fr]">
+        <div className="rounded-md border border-stone-200 bg-white px-5 py-6 text-center">
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-500">Your token</p>
+          <p className="mt-1 font-mono text-5xl font-medium text-pine-700" data-testid="token">{t.displayToken}</p>
+          <p className="mt-2 text-sm text-stone-500">{formatLocalDate(t.serviceDate, 'short')}</p>
         </div>
-      )}
 
-      <Card>
-        <h2 className="font-semibold text-slate-900">Details</h2>
-        <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-          {t.scheduledAt && <><dt className="text-slate-500">Appointment</dt><dd>{formatDateTime(t.scheduledAt, t.timezone)}</dd></>}
-          <dt className="text-slate-500">Issued</dt><dd>{formatTime(t.createdAt, t.timezone)}</dd>
-          {t.checkedInAt && <><dt className="text-slate-500">Joined the line</dt><dd>{formatTime(t.checkedInAt, t.timezone)}</dd></>}
-          {t.calledAt && <><dt className="text-slate-500">Called</dt><dd>{formatTime(t.calledAt, t.timezone)}</dd></>}
-          {t.completedAt && <><dt className="text-slate-500">Completed</dt><dd>{formatTime(t.completedAt, t.timezone)}</dd></>}
-          <dt className="text-slate-500">Priority</dt><dd>{t.priority === 'NORMAL' ? 'Normal' : t.priority === 'HIGH' ? 'High (set by staff)' : 'Low (set by staff)'}</dd>
-        </dl>
-        <p className="mt-4 flex items-start gap-2 text-xs text-slate-500">
-          <Hourglass className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          Positions follow the queue policy: staff-set priority first, then check-in time. Waiting times are estimates.
+        <Panel title="Your place in line">
+          {live && t.status === 'WAITING' && live.position !== null ? (
+            <div aria-live="polite">
+              <p className="text-2xl font-semibold text-stone-900">
+                Number <span data-testid="position">{live.position}</span> in line
+              </p>
+              <p className="mt-1 text-stone-600">
+                {live.peopleAhead === 0 ? 'You are next.' : `${live.peopleAhead} ${live.peopleAhead === 1 ? 'person' : 'people'} ahead of you.`}
+                {' '}Estimated wait {minutesLabel(live.estimatedWaitMinutes).replace('~', 'about ')}.
+              </p>
+              <p className="mt-3 text-sm text-stone-500">
+                Now serving <span className="font-mono">{live.nowServing ?? 'nobody'}</span> · {live.waitingCount} waiting in total
+                {live.queueStatus === 'PAUSED' && ' · the queue is paused, so the estimate is on hold'}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-stone-600">
+              {t.status === 'BOOKED' ? 'You will get a place in line when you check in.'
+                : t.status === 'CALLED' || t.status === 'SERVING' ? 'You are at the counter.'
+                  : 'This ticket is no longer in the line.'}
+            </p>
+          )}
+        </Panel>
+      </div>
+
+      <Panel title="Details">
+        <Details rows={[
+          ...(t.scheduledAt ? [['Appointment', formatDateTime(t.scheduledAt, t.timezone)] as [string, string]] : []),
+          ['How you joined', sourceLabel[t.source]],
+          ['Issued at', formatTime(t.createdAt, t.timezone)],
+          ...(t.checkedInAt ? [['Joined the line', formatTime(t.checkedInAt, t.timezone)] as [string, string]] : []),
+          ...(t.calledAt ? [['Called at', formatTime(t.calledAt, t.timezone)] as [string, string]] : []),
+          ...(t.completedAt ? [['Completed at', formatTime(t.completedAt, t.timezone)] as [string, string]] : []),
+          ['Priority', t.priority === 'NORMAL' ? 'Normal' : `${priorityLabel[t.priority]} (set by staff)`],
+        ]} />
+        <p className="mt-4 text-xs text-stone-500">
+          The line is ordered by priority set by staff, then by the time you joined. Waiting times are estimates.
         </p>
-      </Card>
+      </Panel>
 
-      {cancel.isError && <Alert tone="error">{errorMessage(cancel.error)}</Alert>}
-      <div className="flex flex-wrap gap-3">
+      {cancel.isError && <Notice tone="error">{errorMessage(cancel.error)}</Notice>}
+      <div className="flex flex-wrap items-center gap-4">
         {t.cancellable && (
-          <Button variant="secondary" icon={<LogOut className="size-4" aria-hidden />} onClick={() => setConfirming(true)}>
+          <Button variant="danger" onClick={() => setConfirming(true)}>
             {t.appointmentId ? 'Cancel appointment' : 'Leave the queue'}
           </Button>
         )}
-        {t.appointmentId && <Link to={`/appointments/${t.appointmentId}`} className="rounded-lg px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50">View appointment</Link>}
-        <Link to="/dashboard" className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Back to my queue</Link>
+        {t.appointmentId && <Link to={`/appointments/${t.appointmentId}`} className="text-sm text-pine-700 underline underline-offset-2">View the appointment</Link>}
       </div>
 
       <ConfirmDialog open={confirming} title={t.appointmentId ? 'Cancel this appointment?' : 'Leave the queue?'}
                      confirmLabel={t.appointmentId ? 'Cancel appointment' : 'Leave queue'} loading={cancel.isPending}
                      onCancel={() => setConfirming(false)}
                      onConfirm={() => cancel.mutate({ id: t.id, queueId: t.queueId }, { onSettled: () => setConfirming(false) })}>
-        Token {t.displayToken} will be cancelled and cannot re-enter the queue. {t.appointmentId && 'The slot is released for someone else.'}
+        Token {t.displayToken} will be cancelled and cannot go back into the queue.{t.appointmentId && ' The slot becomes free for someone else.'}
       </ConfirmDialog>
-
     </div>
   );
 }
